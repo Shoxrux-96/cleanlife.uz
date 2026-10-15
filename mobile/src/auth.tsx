@@ -78,7 +78,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setSession(s);
       },
       logout: async () => {
-        await AsyncStorage.removeItem(KEY);
+        try {
+          await AsyncStorage.removeItem(KEY);
+        } catch {
+          /* ignore */
+        }
         setSession(null);
       },
     }),

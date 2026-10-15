@@ -32,8 +32,10 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 async function listAll<T>(path: string): Promise<T[]> {
-  const data = await apiFetch<{ results: T[] }>(`${path}?page_size=1000`);
-  return data.results;
+  const data = await apiFetch<{ results: T[] } | T[]>(`${path}?page_size=1000`);
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.results)) return data.results;
+  return [];
 }
 
 const crud = (path: string) => ({
@@ -99,7 +101,7 @@ export const api = {
       const q = month ? '?month=' + month + '&page_size=1000' : '?page_size=1000';
       return apiFetch<{ results: Record<string, unknown>[] }>(
         '/salary-payments/' + q,
-      ).then((r) => r.results);
+      ).then((r) => (Array.isArray(r?.results) ? r.results : []));
     },
   },
   attendance: {
@@ -109,7 +111,7 @@ export const api = {
       else if (params?.year) q = '?year=' + params.year + '&page_size=1000';
       return apiFetch<{ results: Record<string, unknown>[] }>(
         '/attendance/' + q,
-      ).then((r) => r.results);
+      ).then((r) => (Array.isArray(r?.results) ? r.results : []));
     },
     checkin: (body: {
       employee_id: number;
@@ -157,7 +159,7 @@ export const api = {
       list: (lang: string) =>
         apiFetch<{ results: Record<string, unknown>[] }>(
           `/site/portfolio/?lang=${lang}&page_size=1000`,
-        ).then((r) => r.results),
+        ).then((r) => (Array.isArray(r?.results) ? r.results : [])),
       create: (body: Record<string, unknown>) =>
         apiFetch<Record<string, unknown>>('/site/portfolio/', {
           method: 'POST',
