@@ -50,15 +50,39 @@ function MainApp() {
     return localStorage.getItem('brendor_logged_in') !== 'false';
   });
 
-  const [currentView, setCurrentView] = useState<'site' | 'dashboard'>(() => {
-    const saved = localStorage.getItem('brendor_view');
-    return saved === 'dashboard' ? 'dashboard' : 'site';
-  });
+  const getViewFromUrl = (): 'site' | 'dashboard' =>
+    typeof window !== 'undefined' &&
+    window.location.pathname.startsWith('/dashboard')
+      ? 'dashboard'
+      : 'site';
+
+  const [currentView, setCurrentView] = useState<'site' | 'dashboard'>(() =>
+    getViewFromUrl(),
+  );
 
   const handleSwitchView = (view: 'site' | 'dashboard') => {
     setCurrentView(view);
     localStorage.setItem('brendor_view', view);
+    const url = view === 'dashboard' ? '/dashboard' : '/';
+    window.history.pushState(null, '', url);
+    document.title =
+      view === 'dashboard'
+        ? 'Clean Life — Dashboard'
+        : 'Clean Life — Brending xizmati';
   };
+
+  useEffect(() => {
+    document.title =
+      currentView === 'dashboard'
+        ? 'Clean Life — Dashboard'
+        : 'Clean Life — Brending xizmati';
+  }, [currentView]);
+
+  useEffect(() => {
+    const onPopState = () => setCurrentView(getViewFromUrl());
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   const handleOpenQuote = () => {
     // Quote form section removed — scroll to contact section instead
