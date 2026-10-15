@@ -9,13 +9,20 @@ import {
   View,
 } from 'react-native';
 import { Platform } from 'react-native';
-// react-native-maps faqat telefonda (webda codegen yo'q)
+// react-native-maps faqat telefonda (webda codegen yo'q).
+// Expo Go da native modul yo'q — try/catch shart, aks holda
+// butun ilova qora ekranda qotib qoladi.
 let MapView: any = null;
 let Marker: any = null;
 if (Platform.OS !== 'web') {
-  const maps = require('react-native-maps');
-  MapView = maps.default;
-  Marker = maps.Marker;
+  try {
+    const maps = require('react-native-maps');
+    MapView = maps.default;
+    Marker = maps.Marker;
+  } catch {
+    MapView = null;
+    Marker = null;
+  }
 }
 import * as Location from 'expo-location';
 import { api } from '../../api';
