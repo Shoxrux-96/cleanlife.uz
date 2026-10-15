@@ -46,6 +46,7 @@ const navTheme = {
 
 const tabOpts = {
   headerShown: false,
+  lazy: true,
   tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.cardBorder },
   tabBarActiveTintColor: colors.gold,
   tabBarInactiveTintColor: colors.muted,

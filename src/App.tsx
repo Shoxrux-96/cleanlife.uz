@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { Header } from './components/Header';
@@ -12,7 +12,12 @@ import { TargetAndJourney } from './components/TargetAndJourney';
 import { ContactSection } from './components/ContactSection';
 import { Footer } from './components/Footer';
 import { LoginModal } from './components/LoginModal';
-import { BusinessDashboard } from './components/dashboard/BusinessDashboard';
+// Dashboard og'ir (ERP) — faqat login bosilganda yuklanadi
+const BusinessDashboard = React.lazy(() =>
+  import('./components/dashboard/BusinessDashboard').then((m) => ({
+    default: m.BusinessDashboard,
+  })),
+);
 import { MessageCircle, Phone, X, Send, LayoutDashboard, ShieldCheck, Instagram } from 'lucide-react';
 import { getStoredContactInfo } from './data/cmsInitialData';
 import { loadContactInfo } from './api/siteSync';
@@ -87,10 +92,18 @@ function MainApp() {
   // If in Dashboard View, render the Business ERP Dashboard
   if (currentView === 'dashboard') {
     return (
-      <BusinessDashboard
-        onBackToSite={() => handleSwitchView('site')}
-        onLogout={handleLogout}
-      />
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center bg-[#121110]">
+            <div className="w-10 h-10 rounded-full border-2 border-[#C59B27] border-t-transparent animate-spin" />
+          </div>
+        }
+      >
+        <BusinessDashboard
+          onBackToSite={() => handleSwitchView('site')}
+          onLogout={handleLogout}
+        />
+      </Suspense>
     );
   }
 
