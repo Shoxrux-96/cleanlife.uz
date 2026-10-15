@@ -1,0 +1,655 @@
+@import "tailwindcss";
+
+/* Leaflet map fixes: Tailwind preflight can break tile sizing & container font */
+.leaflet-container {
+  font-family: inherit;
+  background: #e8e4dc;
+}
+.leaflet-tile,
+.leaflet-tile-loaded,
+.leaflet-layer {
+  max-width: none !important;
+}
+.leaflet-control-zoom a {
+  color: #1a1715;
+  background: #fff;
+  border-bottom: 1px solid #e2dbd1;
+}
+.leaflet-control-attribution {
+  display: none !important;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-display: "Syne", "Plus Jakarta Sans", sans-serif;
+
+  --color-gold-300: #e6c774;
+  --color-gold-400: #d4af37;
+  --color-gold-500: #c59b27;
+  --color-gold-600: #a88118;
+
+  --color-brand-cream: #f7f4ee;
+  --color-brand-sand: #efece6;
+  --color-brand-charcoal: #141312;
+  --color-brand-dark: #1b1918;
+  --color-brand-card: #221f1e;
+  --color-brand-border: #332e2b;
+}
+
+@layer utilities {
+  .font-serif-luxury {
+    font-family: var(--font-serif);
+  }
+  .font-display-modern {
+    font-family: var(--font-display);
+  }
+}
+
+/* Subtle luxury grain & custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #121110;
+}
+::-webkit-scrollbar-thumb {
+  background: #2e2a27;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c59b27;
+}
+
+/* Luxury card gold border shimmer */
+.gold-glow {
+  box-shadow: 0 0 25px -5px rgba(212, 175, 55, 0.15);
+}
+
+.gold-gradient-text {
+  background: linear-gradient(135deg, #fdfbf7 0%, #e6c774 40%, #c59b27 70%, #f7f4ee 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtle-border {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Comprehensive Light Mode for HoReCa Branding Studio */
+html.light,
+.light {
+  color-scheme: light;
+}
+
+html.light body,
+.light body,
+html.light #root,
+.light #root {
+  background-color: #FAF8F5 !important;
+  color: #1A1715 !important;
+}
+
+/* 1. NAVBAR & HEADER in Light Mode: Luxurious warm ivory glass */
+html.light header,
+.light header {
+  background-color: rgba(250, 248, 245, 0.96) !important;
+  border-bottom-color: #E2DBD1 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
+  color: #1A1715 !important;
+}
+
+html.light header a,
+.light header a {
+  color: #2D261E;
+}
+
+/* 2. PROTECT ALL IMAGES, PHOTOS, AND PHOTOGRAPHIC VIGNETTES IN LIGHT MODE */
+html.light img,
+.light img {
+  opacity: 1 !important;
+  visibility: visible !important;
+  filter: none !important;
+}
+
+/* Gradient photo shadow vignettes MUST stay transparent and photographic, never turned into white boxes */
+html.light [class*="from-black"],
+.light [class*="from-black"],
+html.light [class*="to-transparent"],
+.light [class*="to-transparent"],
+html.light [class*="via-transparent"],
+.light [class*="via-transparent"] {
+  background-color: transparent !important;
+}
+
+/* Translucent dark pill badges on photos and cards must stay high-contrast dark with light text (exclude fixed modal backdrops) */
+html.light .relative img ~ [class*="bg-black"],
+.light .relative img ~ [class*="bg-black"],
+html.light .absolute [class*="bg-black/"],
+.light .absolute [class*="bg-black/"],
+html.light :not(.fixed):not(.fixed *)[class*="bg-black/70"],
+.light :not(.fixed):not(.fixed *)[class*="bg-black/70"],
+html.light :not(.fixed):not(.fixed *)[class*="bg-black/75"],
+.light :not(.fixed):not(.fixed *)[class*="bg-black/75"],
+html.light :not(.fixed):not(.fixed *)[class*="bg-black/80"],
+.light :not(.fixed):not(.fixed *)[class*="bg-black/80"],
+html.light :not(.fixed):not(.fixed *)[class*="bg-black/85"],
+.light :not(.fixed):not(.fixed *)[class*="bg-black/85"],
+html.light :not(.fixed):not(.fixed *)[class*="bg-black/90"],
+.light :not(.fixed):not(.fixed *)[class*="bg-black/90"] {
+  background-color: rgba(18, 16, 14, 0.82) !important;
+  color: #FAF7F2 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+html.light .relative img ~ [class*="bg-black"] *,
+.light .relative img ~ [class*="bg-black"] *,
+html.light .absolute [class*="bg-black/"] *,
+.light .absolute [class*="bg-black/"] *,
+html.light :not(.fixed):not(.fixed *)[class*="bg-black/70"] *,
+.light :not(.fixed):not(.fixed *)[class*="bg-black/70"] *,
+html.light :not(.fixed):not(.fixed *)[class*="bg-black/75"] *,
+.light :not(.fixed):not(.fixed *)[class*="bg-black/75"] *,
+html.light :not(.fixed):not(.fixed *)[class*="bg-black/80"] *,
+.light :not(.fixed):not(.fixed *)[class*="bg-black/80"] *,
+html.light :not(.fixed):not(.fixed *)[class*="bg-black/85"] *,
+.light :not(.fixed):not(.fixed *)[class*="bg-black/85"] *,
+html.light :not(.fixed):not(.fixed *)[class*="bg-black/90"] *,
+.light :not(.fixed):not(.fixed *)[class*="bg-black/90"] * {
+  color: #FAF7F2 !important;
+}
+
+/* Material Kirim Modal - 100% Crisp & High-Contrast Typography in Light & Dark modes */
+html.light .material-modal-card {
+  background-color: #FFFFFF !important;
+  color: #111827 !important;
+}
+html.light .material-modal-card label {
+  color: #111827 !important;
+}
+html.light .material-modal-card input,
+html.light .material-modal-card select {
+  background-color: #FFFFFF !important;
+  color: #111827 !important;
+  border-color: #D1D5DB !important;
+}
+html.light .material-modal-card input::placeholder {
+  color: #9CA3AF !important;
+}
+html.light .material-modal-card option {
+  background-color: #FFFFFF !important;
+  color: #111827 !important;
+}
+
+/* 3. PROTECT ALL 3D PRODUCT MOCKUPS & ESKIZLAR (MockupRenderer) */
+/* In light mode, 3D mockups (wet wipes, aprons, polos, caps, toothpick boxes) must preserve their real materials and textures */
+html.light .mockup-renderer-root,
+.light .mockup-renderer-root {
+  filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.18));
+}
+
+html.light .mockup-renderer-root [class*="bg-gradient-to-br"],
+.light .mockup-renderer-root [class*="bg-gradient-to-br"],
+html.light .mockup-renderer-root [class*="bg-gradient-to-b"],
+.light .mockup-renderer-root [class*="bg-gradient-to-b"],
+html.light .mockup-renderer-root [class*="from-[#"],
+.light .mockup-renderer-root [class*="from-[#"],
+html.light .mockup-renderer-root [class*="via-[#"],
+.light .mockup-renderer-root [class*="via-[#"],
+html.light .mockup-renderer-root [class*="to-[#"],
+.light .mockup-renderer-root [class*="to-[#"] {
+  background-image: inherit !important;
+}
+
+/* Before & After comparison slider box */
+html.light .before-after-slider,
+.light .before-after-slider {
+  background-color: #100F0E !important;
+  border-color: #42372D !important;
+}
+
+html.light .before-after-slider [class*="from-[#"],
+.light .before-after-slider [class*="from-[#"],
+html.light .before-after-slider [class*="bg-[#1"],
+.light .before-after-slider [class*="bg-[#1"] {
+  background-color: inherit !important;
+}
+
+/* 4. GENERAL SECTION & CARD LIGHT STYLING (Except mockups, photos, and slider) */
+html.light section,
+.light section {
+  background-color: #FAF8F5 !important;
+}
+
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#12100E]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#131110]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#141210]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#141211]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#151312]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#161412]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#181513]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#181614]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#181615]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#1A1815]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#1A1816]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#1B1815]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#1C1814]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#1C1815]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#1C1917]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#201B17]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#201C17]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#221F1E]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#241F1A]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#262019]"],
+html.light aside:not(.mockup-renderer-root)[class*="bg-[#161412]"],
+html.light aside:not(.mockup-renderer-root)[class*="bg-[#1C1814]"],
+.light aside:not(.mockup-renderer-root)[class*="bg-[#161412]"],
+.light aside:not(.mockup-renderer-root)[class*="bg-[#1C1814]"] {
+  background-color: #FFFFFF !important;
+  border-color: #E2DBD1 !important;
+}
+
+/* Secondary pills & selectors in light mode */
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#282119]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#2A231C]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#2A241F]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#2E261F]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#322920]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#352D24]"],
+html.light div:not(.mockup-renderer-root):not(.mockup-renderer-root *):not(.before-after-slider):not(.before-after-slider *)[class*="bg-[#382F25]"] {
+  background-color: #F4ECE1 !important;
+  border-color: #D8CEBE !important;
+}
+
+/* Base page background overrides */
+html.light .bg-\[\#121110\],
+.light .bg-\[\#121110\],
+html.light .bg-\[\#0E0D0C\],
+.light .bg-\[\#0E0D0C\],
+html.light .bg-\[\#0F0E0D\],
+.light .bg-\[\#0F0E0D\],
+html.light .bg-\[\#100F0E\]:not(.before-after-slider),
+.light .bg-\[\#100F0E\]:not(.before-after-slider),
+html.light .bg-\[\#11100F\],
+.light .bg-\[\#11100F\],
+html.light .bg-\[\#131110\],
+.light .bg-\[\#131110\] {
+  background-color: #FAF8F5 !important;
+  color: #1A1715 !important;
+}
+
+/* Modal Backdrops remain semi-transparent dimmed overlay */
+html.light .fixed.inset-0[class*="bg-black"],
+.light .fixed.inset-0[class*="bg-black"] {
+  background-color: rgba(26, 23, 21, 0.6) !important;
+}
+
+/* 5. Hover States in Light Mode */
+html.light [class*="hover:bg-[#2" i]:hover,
+html.light [class*="hover:bg-[#3" i]:hover,
+.light [class*="hover:bg-[#2" i]:hover,
+.light [class*="hover:bg-[#3" i]:hover {
+  background-color: #EAE2D4 !important;
+}
+
+/* 6. All Dark Borders -> Elegant Crisp Warm Neutral Border */
+html.light [class*="border-[#1" i],
+html.light [class*="border-[#2" i],
+html.light [class*="border-[#3" i],
+html.light [class*="border-[#4" i],
+html.light [class*="border-[#5" i],
+.light [class*="border-[#1" i],
+.light [class*="border-[#2" i],
+.light [class*="border-[#3" i],
+.light [class*="border-[#4" i],
+.light [class*="border-[#5" i] {
+  border-color: #E2DBD1 !important;
+}
+
+html.light .border-white\/5,
+.light .border-white\/5,
+html.light .border-white\/10,
+.light .border-white\/10,
+html.light .border-white\/15,
+.light .border-white\/15,
+html.light .border-white\/20,
+.light .border-white\/20 {
+  border-color: #E2DBD1 !important;
+}
+
+/* Divide Lines */
+html.light [class*="divide-[#" i] > :not([hidden]) ~ :not([hidden]),
+.light [class*="divide-[#" i] > :not([hidden]) ~ :not([hidden]) {
+  border-color: #ECE5DA !important;
+}
+
+/* 7. High Contrast Legible Typography in Light Mode */
+/* Main Headings and Titles -> Deep Crisp Espresso Charcoal */
+html.light .text-\[\#FAF7F2\],
+html.light .text-\[\#FDFBF7\],
+html.light .text-\[\#FBF9F5\],
+html.light .text-\[\#F5F2EC\],
+html.light .text-\[\#F3EFEA\],
+html.light .text-\[\#EFECE6\],
+html.light .text-\[\#EFEBE4\],
+.light .text-\[\#FAF7F2\],
+.light .text-\[\#FDFBF7\],
+.light .text-\[\#FBF9F5\],
+.light .text-\[\#F5F2EC\],
+.light .text-\[\#F3EFEA\],
+.light .text-\[\#EFECE6\],
+.light .text-\[\#EFEBE4\] {
+  color: #1A1715 !important;
+}
+
+/* Secondary & Body Text -> High Contrast Dark Warm Slate */
+html.light .text-\[\#DDD7CD\],
+html.light .text-\[\#DDD6CC\],
+html.light .text-\[\#DDD7CC\],
+html.light .text-\[\#DDD6CB\],
+html.light .text-\[\#D8D0C5\],
+html.light .text-\[\#D8CFBF\],
+html.light .text-\[\#D8CEBF\],
+html.light .text-\[\#D6CEBF\],
+html.light .text-\[\#CFC6B9\],
+html.light .text-\[\#C8C0B5\],
+html.light .text-\[\#C4BDB4\],
+html.light .text-\[\#C2B7A8\],
+html.light .text-\[\#BDB5A8\],
+html.light .text-\[\#B8ADA0\],
+.light .text-\[\#DDD7CD\],
+.light .text-\[\#DDD6CC\],
+.light .text-\[\#DDD7CC\],
+.light .text-\[\#DDD6CB\],
+.light .text-\[\#D8D0C5\],
+.light .text-\[\#D8CFBF\],
+.light .text-\[\#D8CEBF\],
+.light .text-\[\#D6CEBF\],
+.light .text-\[\#CFC6B9\],
+.light .text-\[\#C8C0B5\],
+.light .text-\[\#C4BDB4\],
+.light .text-\[\#C2B7A8\],
+.light .text-\[\#BDB5A8\],
+.light .text-\[\#B8ADA0\] {
+  color: #383127 !important;
+}
+
+/* Caption and Muted Text -> Rich Legible Cocoa Tone */
+html.light .text-\[\#A89F93\],
+html.light .text-\[\#A69C8E\],
+html.light .text-\[\#9E9385\],
+html.light .text-\[\#9E9486\],
+html.light .text-\[\#8E8476\],
+html.light .text-\[\#8C8275\],
+html.light .text-\[\#7F7466\],
+html.light .text-\[\#685E53\],
+.light .text-\[\#A89F93\],
+.light .text-\[\#A69C8E\],
+.light .text-\[\#9E9385\],
+.light .text-\[\#9E9486\],
+.light .text-\[\#8E8476\],
+.light .text-\[\#8C8275\],
+.light .text-\[\#7F7466\],
+.light .text-\[\#685E53\] {
+  color: #5E5344 !important;
+}
+
+/* Gold Text in Light Mode: Warm, Deep Amber-Gold for Maximum Contrast */
+html.light .text-\[\#D4AF37\],
+html.light .text-\[\#C59B27\],
+html.light .text-\[\#E8C872\],
+html.light .text-\[\#E6C774\],
+html.light .text-\[\#E2BE46\],
+.light .text-\[\#D4AF37\],
+.light .text-\[\#C59B27\],
+.light .text-\[\#E8C872\],
+.light .text-\[\#E6C774\],
+.light .text-\[\#E2BE46\] {
+  color: #94690A !important;
+}
+
+/* Ensure Gold CTAs always have crisp black text inside */
+html.light button.bg-\[\#D4AF37\],
+html.light [class*="bg-gradient-to-r from-\[#C59B27\]"],
+.light button.bg-\[\#D4AF37\],
+.light [class*="bg-gradient-to-r from-\[#C59B27\]"] {
+  color: #121110 !important;
+}
+html.light button.bg-\[\#D4AF37\] *,
+html.light [class*="bg-gradient-to-r from-\[#C59B27\]"] *,
+.light button.bg-\[\#D4AF37\] *,
+.light [class*="bg-gradient-to-r from-\[#C59B27\]"] * {
+  color: #121110 !important;
+}
+
+/* Explicitly preserve high contrast metallic foil, branding, and text inside mockups and photo overlays */
+html.light .mockup-renderer-root h3,
+html.light .mockup-renderer-root h4,
+html.light .mockup-renderer-root h5,
+html.light .mockup-renderer-root [style*="color"],
+.light .mockup-renderer-root h3,
+.light .mockup-renderer-root h4,
+.light .mockup-renderer-root h5,
+.light .mockup-renderer-root [style*="color"] {
+  color: inherit;
+}
+
+html.light .before-after-slider [class*="text-"],
+.light .before-after-slider [class*="text-"] {
+  color: inherit;
+}
+
+/* 8. Form Inputs, Selects & Textareas in Light Mode */
+html.light input,
+html.light select,
+html.light textarea,
+.light input,
+.light select,
+.light textarea {
+  background-color: #F8F5EE !important;
+  border-color: #D6CDBF !important;
+  color: #1A1715 !important;
+}
+html.light input::placeholder,
+html.light textarea::placeholder,
+.light input::placeholder,
+.light textarea::placeholder {
+  color: #8C8275 !important;
+}
+html.light input:focus,
+html.light select:focus,
+html.light textarea:focus,
+.light input:focus,
+.light select:focus,
+.light textarea:focus {
+  border-color: #94690A !important;
+  box-shadow: 0 0 0 1px #94690A !important;
+}
+
+/* 9. Tables in ERP Dashboard */
+html.light table,
+.light table {
+  background-color: #FFFFFF !important;
+  color: #1A1715 !important;
+}
+
+html.light thead,
+.light thead,
+html.light th,
+.light th {
+  background-color: #F4EFE6 !important;
+  color: #4A4033 !important;
+  border-color: #E2DBD1 !important;
+}
+
+html.light tbody tr,
+.light tbody tr {
+  border-color: #EDE7DD !important;
+}
+
+html.light tbody tr:hover,
+.light tbody tr:hover {
+  background-color: #F8F5EE !important;
+}
+
+/* 10. Footer in Light Mode */
+html.light footer,
+.light footer {
+  background-color: #F4EFE6 !important;
+  border-top-color: #DFD7C8 !important;
+  color: #383127 !important;
+}
+
+html.light footer .text-\[\#FAF7F2\],
+.light footer .text-\[\#FAF7F2\] {
+  color: #1A1715 !important;
+}
+
+html.light footer a,
+.light footer a {
+  color: #4A4033 !important;
+}
+
+html.light footer a:hover,
+.light footer a:hover {
+  color: #8C6207 !important;
+}
+
+/* Status Badges in Light Mode */
+html.light .bg-emerald-500\/10,
+html.light .bg-emerald-500\/15,
+html.light .bg-emerald-500\/20,
+.light .bg-emerald-500\/10,
+.light .bg-emerald-500\/15,
+.light .bg-emerald-500\/20 {
+  background-color: #ECFDF5 !important;
+  border-color: #A7F3D0 !important;
+}
+html.light .text-emerald-400,
+.light .text-emerald-400 {
+  color: #047857 !important;
+}
+
+html.light .bg-rose-500\/10,
+html.light .bg-rose-500\/15,
+html.light .bg-rose-500\/20,
+.light .bg-rose-500\/10,
+.light .bg-rose-500\/15,
+.light .bg-rose-500\/20 {
+  background-color: #FFF1F2 !important;
+  border-color: #FECDD3 !important;
+}
+html.light .text-rose-400,
+.light .text-rose-400 {
+  color: #BE123C !important;
+}
+
+html.light .bg-amber-500\/10,
+html.light .bg-amber-500\/15,
+html.light .bg-amber-500\/20,
+.light .bg-amber-500\/10,
+.light .bg-amber-500\/15,
+.light .bg-amber-500\/20 {
+  background-color: #FFFBEB !important;
+  border-color: #FDE68A !important;
+}
+html.light .text-amber-400,
+.light .text-amber-400 {
+  color: #B45309 !important;
+}
+
+html.light .bg-blue-500\/10,
+html.light .bg-blue-500\/15,
+html.light .bg-blue-500\/20,
+.light .bg-blue-500\/10,
+.light .bg-blue-500\/15,
+.light .bg-blue-500\/20 {
+  background-color: #EFF6FF !important;
+  border-color: #BFDBFE !important;
+}
+html.light .text-blue-400,
+.light .text-blue-400 {
+  color: #1D4ED8 !important;
+}
+
+html.light .bg-cyan-500\/15,
+.light .bg-cyan-500\/15 {
+  background-color: #ECFEFF !important;
+  border-color: #A5F3FC !important;
+}
+html.light .text-cyan-400,
+.light .text-cyan-400 {
+  color: #0E7490 !important;
+}
+
+html.light .bg-zinc-500\/10,
+html.light .bg-zinc-500\/15,
+.light .bg-zinc-500\/10,
+.light .bg-zinc-500\/15 {
+  background-color: #F4F4F5 !important;
+  border-color: #E4E4E7 !important;
+}
+html.light .text-zinc-400,
+html.light .text-zinc-300,
+.light .text-zinc-400,
+.light .text-zinc-300 {
+  color: #52525B !important;
+}
+
+/* Light Scrollbar */
+html.light ::-webkit-scrollbar-track,
+.light ::-webkit-scrollbar-track {
+  background: #FAF8F5;
+}
+html.light ::-webkit-scrollbar-thumb,
+.light ::-webkit-scrollbar-thumb {
+  background: #D4CBC0;
+}
+html.light ::-webkit-scrollbar-thumb:hover,
+.light ::-webkit-scrollbar-thumb:hover {
+  background: #94690A;
+}
+
+/* Phone-call style pulsing ripple & ringing animation for Telegram floating button */
+@keyframes telegram-phone-ring {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 136, 204, 0.75), 0 0 0 0 rgba(0, 136, 204, 0.4);
+  }
+  40% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 14px rgba(0, 136, 204, 0.2), 0 0 0 28px rgba(0, 136, 204, 0);
+  }
+  80%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 136, 204, 0), 0 0 0 0 rgba(0, 136, 204, 0);
+  }
+}
+
+@keyframes telegram-call-wiggle {
+  0%, 100% {
+    transform: rotate(0deg) scale(1);
+  }
+  10%, 30%, 50% {
+    transform: rotate(-14deg) scale(1.15);
+  }
+  20%, 40%, 60% {
+    transform: rotate(14deg) scale(1.15);
+  }
+  70% {
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+.telegram-call-pulse {
+  animation: telegram-phone-ring 2.2s infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.telegram-call-wiggle {
+  animation: telegram-call-wiggle 2.8s infinite ease-in-out;
+}
+
+
+

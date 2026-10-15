@@ -1,0 +1,6 @@
+{
+  "name": "BRENDOR — HoReCa Brending va Logo Joylashtirish",
+  "description": "Restoran va xizmat ko‘rsatish bizneslari uchun tayyor kiyimlar, nam salfetkalar, tish kovlagich qutilari va qadoqlarga professional brending va logo joylashtirish.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

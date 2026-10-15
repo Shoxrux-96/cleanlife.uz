@@ -1,0 +1,45 @@
+# See https://github.com/github/gitignore/blob/main/Node.gitignore
+node_modules/
+/pnpm-lock.yaml
+/bun.lockb
+/yarn.lock
+
+# See https://github.com/github/gitignore/blob/main/ReactNative.gitignore
+# Expo specific
+/.expo/
+/dist/
+/debugger.log
+
+# Android & iOS build outputs
+/android/
+/ios/
+/build/
+
+# Metro
+/metro.config.js
+
+# Environment variables
+/.env*
+/secret*
+
+# Dependencies
+/node_modules/
+/.pnp/
+
+# Testing
+/.vitest/
+/.storybook/
+
+# Production
+/dist/
+/.output/
+
+# Editor specific
+/.idea/
+/.vscode/
+*.suo
+*.ntvs.sln
+*.sln.imt
+
+# Expo Go
+/expo-shared/

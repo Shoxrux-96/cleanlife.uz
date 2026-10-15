@@ -1,0 +1,101 @@
+export const receiptUz = {
+  header: {
+    editTitle: 'Xom-ashyo Ma’lumotlarini Tahrirlash',
+    addTitle: 'Yangi Xom-ashyo Material Kirimi',
+    subtitle: 'Nomi, o‘lchov birligi, miqdori va narxini kiriting',
+    closeTitle: 'Yopish',
+  },
+  form: {
+    nameLabel: 'Mahsulot / Material Nomi',
+    namePh: 'Masalan: Spunlace no-to‘qima paxta matosi yoki Oq qalin karton',
+    stockPrefix: 'Mavjud ombor zaxirasi:',
+    counterpartyLabel: 'Kontragent / Mijoz',
+    counterpartyPh: 'Masalan: Buxoro EuroTex Fabrikasi MCHJ',
+    paymentLabel: 'To‘lov Usuli',
+    unitLabel: 'O‘lchov Birligi',
+    qtyLabel: 'Kirim Miqdori',
+    priceLabel: '1 Birlik Narxi (so‘m)',
+    totalLabel: 'Jami summa:',
+    minLabel: 'Minimal Xavfsiz Zaxira',
+    minHint: 'Zaxira shundan kamayganda ogohlantirish beriladi',
+  },
+  payment: {
+    bank: 'Bank hisob raqami (Perechisleniye)',
+    cash: 'Naqd pul',
+    card: 'Korporativ karta (Uzcard/Humo)',
+    credit: 'Nasiya (Muddatli to‘lov)',
+    other: 'Boshqa to‘lov usuli',
+  },
+  units: {
+    dona: 'dona (Dona)',
+    kg: 'kg (Kilogramm)',
+    gr: 'gr (Gramm)',
+    litr: 'litr (Litr)',
+    m: 'm (Metr)',
+    pachka: 'pachka (Pachka)',
+    blok: 'blok (Blok)',
+  },
+  time: {
+    title: 'Kirim Sana va Vaqti (O‘zbekiston vaqti bilan avtomatik)',
+    autoBadge: '✓ Avtomatik (Toshkent vaqti)',
+  },
+  actions: {
+    cancel: 'Bekor qilish',
+    saveEdit: 'O‘zgarishlarni Saqlash',
+    saveNew: 'Kirimni Saqlash',
+  },
+  common: {
+    currencySuffix: " so'm",
+  },
+};
+
+export const receiptRu = {
+  header: {
+    editTitle: 'Редактирование данных сырья',
+    addTitle: 'Новое поступление сырья',
+    subtitle: 'Введите название, единицу измерения, количество и цену',
+    closeTitle: 'Закрыть',
+  },
+  form: {
+    nameLabel: 'Название товара / материала',
+    namePh: 'Например: спанлейс нетканое хлопковое полотно или белый плотный картон',
+    stockPrefix: 'Текущий остаток на складе:',
+    counterpartyLabel: 'Контрагент / Клиент',
+    counterpartyPh: 'Например: Бухара ЕвроТекс Фабрикаси МЧЖ',
+    paymentLabel: 'Способ оплаты',
+    unitLabel: 'Единица измерения',
+    qtyLabel: 'Количество поступления',
+    priceLabel: 'Цена за 1 единицу (сум)',
+    totalLabel: 'Итого:',
+    minLabel: 'Минимальный безопасный запас',
+    minHint: 'При снижении запаса ниже будет показано предупреждение',
+  },
+  payment: {
+    bank: 'Банковский счёт (перечисление)',
+    cash: 'Наличные',
+    card: 'Корпоративная карта (Uzcard/Humo)',
+    credit: 'В долг (рассрочка)',
+    other: 'Другой способ оплаты',
+  },
+  units: {
+    dona: 'шт (Штука)',
+    kg: 'кг (Килограмм)',
+    gr: 'г (Грамм)',
+    litr: 'л (Литр)',
+    m: 'м (Метр)',
+    pachka: 'пачка (Пачка)',
+    blok: 'блок (Блок)',
+  },
+  time: {
+    title: 'Дата и время поступления (автоматически, время Узбекистана)',
+    autoBadge: '✓ Автоматически (ташкентское время)',
+  },
+  actions: {
+    cancel: 'Отмена',
+    saveEdit: 'Сохранить изменения',
+    saveNew: 'Сохранить поступление',
+  },
+  common: {
+    currencySuffix: ' сум',
+  },
+};
