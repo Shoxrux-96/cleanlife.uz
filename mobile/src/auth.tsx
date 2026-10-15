@@ -38,12 +38,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let done = false;
+    const finish = () => {
+      if (!done) {
+        done = true;
+        setLoading(false);
+      }
+    };
+    // Sug'urta: storage sekin/qotib qolsa ham login ekrani chiqsin
+    const timer = setTimeout(finish, 6000);
     AsyncStorage.getItem(KEY)
       .then((raw) => {
         if (raw) setSession(JSON.parse(raw));
       })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => {
+        clearTimeout(timer);
+        finish();
+      });
+    return () => clearTimeout(timer);
   }, []);
 
   const value = useMemo<AuthValue>(
