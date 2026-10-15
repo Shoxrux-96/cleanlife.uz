@@ -43,3 +43,9 @@ node_modules/
 
 # Expo Go
 /expo-shared/
+
+__pycache__/
+*.pyc
+*.pyo
+backend/venv/
+backend/db.sqlite3

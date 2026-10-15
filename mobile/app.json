@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "Clean Life ERP",
+    "slug": "clean-life-erp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#121110"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "uz.cleanlife.erp",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Davomat uchun joylashuvingiz tekshiriladi.",
+        "NSFaceIDUsageDescription": "Davomatni tasdiqlash uchun Face ID ishlatiladi."
+      }
+    },
+    "android": {
+      "package": "uz.cleanlife.erp",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#121110",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Davomat uchun joylashuvingiz tekshiriladi."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Davomatni tasdiqlash uchun Face ID ishlatiladi."
+        }
+      ]
+    ]
+  }
+}
