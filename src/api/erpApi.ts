@@ -5,7 +5,12 @@ import type {
 } from '../types/erp';
 import type { ContactMessage } from '../types';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE =
+  import.meta.env.VITE_API_BASE ||
+  (window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:8000/api'
+    : 'http://13.140.154.35:8000/api');
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
