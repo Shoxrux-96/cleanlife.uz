@@ -47,7 +47,7 @@ function MainApp() {
 
   const [currentView, setCurrentView] = useState<'site' | 'dashboard'>(() => {
     const saved = localStorage.getItem('brendor_view');
-    return saved === 'site' ? 'site' : 'dashboard';
+    return saved === 'dashboard' ? 'dashboard' : 'site';
   });
 
   const handleSwitchView = (view: 'site' | 'dashboard') => {
