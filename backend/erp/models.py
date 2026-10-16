@@ -463,6 +463,7 @@ class SiteContactInfo(models.Model):
     """Saytning 'Biz bilan bog'laning' rekvizitlari (yagona yozuv, hamma platformada sinxron)."""
     phone1 = models.CharField(max_length=50, default='+998 (71) 200-00-99')
     phone2 = models.CharField(max_length=50, blank=True, default='+998 (90) 800-00-99')
+    phone3 = models.CharField(max_length=50, blank=True, default='')
     email = models.EmailField(blank=True, default='info@cleanlife.uz')
     telegram = models.CharField(max_length=100, blank=True, default='@brendor_horeca')
     instagram = models.CharField(max_length=100, blank=True, default='@cleanlife.uz')

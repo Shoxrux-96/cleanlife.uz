@@ -49,6 +49,7 @@ export const Header: React.FC<HeaderProps> = ({
     { label: t.nav.home, href: '#hero' },
     { label: t.nav.process, href: '#process' },
     { label: t.nav.branding, href: '#branding' },
+    { label: t.nav.products, href: '#products' },
     { label: t.nav.portfolio, href: '#portfolio' },
     { label: t.nav.why, href: '#why-us' },
     { label: t.nav.clients, href: '#clients' },

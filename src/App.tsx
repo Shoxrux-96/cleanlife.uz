@@ -5,6 +5,7 @@ import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { HowWeBrand } from './components/HowWeBrand';
 import { BrandingConsultation } from './components/BrandingConsultation';
+import { ProductsSection } from './components/ProductsSection';
 import { BeforeAfterSlider } from './components/BeforeAfterSlider';
 import { PortfolioSection } from './components/PortfolioSection';
 import { WhyChooseUs } from './components/WhyChooseUs';
@@ -177,6 +178,9 @@ function MainApp() {
 
       {/* 9. Branding Service (Biz faqat logo joylashtirmaymiz...) */}
       <BrandingConsultation onOpenQuote={() => handleOpenQuote()} />
+
+      {/* 9b. Products (Brendlangan mahsulotlar) */}
+      <ProductsSection />
 
       {/* 10. Portfolio (Brendlangan loyihalarimiz) */}
       <PortfolioSection />

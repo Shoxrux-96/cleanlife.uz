@@ -340,6 +340,19 @@ export const ContactCmsTab: React.FC<ContactCmsTabProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-[#4A4033] dark:text-[#D6CEBF] mb-1.5 flex items-center gap-1.5">
+                <Phone className="w-3.5 h-3.5 text-[#D4AF37]" />
+                <span>{t.dash.cmsContact.settings.phone3}</span>
+              </label>
+              <input
+                type="text"
+                value={settingsForm.phone3 || ''}
+                onChange={(e) => setSettingsForm({ ...settingsForm, phone3: e.target.value })}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-stone-50 dark:bg-[#121110] border border-[#E2DBD1] dark:border-[#332A21] focus:border-[#D4AF37] text-xs text-[#1A1715] dark:text-[#FAF7F2] outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#4A4033] dark:text-[#D6CEBF] mb-1.5 flex items-center gap-1.5">
                 <Mail className="w-3.5 h-3.5 text-[#6EE7B7]" />
                 <span>{t.dash.cmsContact.settings.email}</span>
               </label>

@@ -306,7 +306,7 @@ class SiteContactInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = SiteContactInfo
         fields = [
-            'id', 'phone1', 'phone2', 'email', 'telegram', 'instagram',
+            'id', 'phone1', 'phone2', 'phone3', 'email', 'telegram', 'instagram',
             'address', 'address_ru', 'working_hours', 'working_hours_ru',
             'updated_at',
         ]

@@ -87,6 +87,7 @@ export interface ContactMessage {
 export interface PublicContactInfo {
   phone1: string;
   phone2: string;
+  phone3?: string;
   email: string;
   telegram: string;
   instagram: string;

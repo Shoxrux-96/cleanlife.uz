@@ -101,7 +101,7 @@ export const ContactSection: React.FC = () => {
                   </div>
                   <div>
                     <span className="text-[11px] text-[#6B6152] dark:text-[#8C8377] font-mono block">{t.contact.phone}</span>
-                    <span className="font-semibold text-[#1A1715] dark:text-[#FAF7F2]">{contactInfo.phone1} / {contactInfo.phone2}</span>
+                    <span className="font-semibold text-[#1A1715] dark:text-[#FAF7F2]">{[contactInfo.phone1, contactInfo.phone2, contactInfo.phone3].filter(Boolean).join(' / ')}</span>
                   </div>
                 </a>
 

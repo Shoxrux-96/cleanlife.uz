@@ -7,6 +7,7 @@ import { colors } from '../../theme';
 const FIELDS: Array<{ key: string; label: string; keyboard?: 'default' | 'numeric' | 'phone-pad' | 'email-address'; multiline?: boolean }> = [
   { key: 'phone1', label: 'Telefon 1', keyboard: 'phone-pad' },
   { key: 'phone2', label: 'Telefon 2', keyboard: 'phone-pad' },
+  { key: 'phone3', label: 'Telefon 3', keyboard: 'phone-pad' },
   { key: 'email', label: 'Email', keyboard: 'email-address' },
   { key: 'telegram', label: 'Telegram' },
   { key: 'instagram', label: 'Instagram' },
@@ -21,6 +22,7 @@ const str = (v: unknown): string => (v === null || v === undefined ? '' : String
 const emptyState = (): Record<string, string> => ({
   phone1: '',
   phone2: '',
+  phone3: '',
   email: '',
   telegram: '',
   instagram: '',
