@@ -2,6 +2,7 @@
   "expo": {
     "name": "Clean Life ERP",
     "slug": "clean-life-erp",
+    "owner": "shoxrux007",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -25,7 +26,11 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "USE_BIOMETRIC",
-        "USE_FINGERPRINT"
+        "USE_FINGERPRINT",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#121110",
@@ -47,6 +52,11 @@
           "faceIDPermission": "Davomatni tasdiqlash uchun Face ID ishlatiladi."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e08b4f2f-11ab-4777-b4dd-bc1e05895687"
+      }
+    }
   }
 }
