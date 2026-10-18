@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/auth';
 import { RootNavigator } from './src/nav';
 
+
 // Polyfill for crypto.randomUUID (some browsers/extensions don't support it)
 const uuidPolyfill = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => (c === 'x' ? Math.random() : Math.random() * 0.5 + 0.5).toString(16));
 

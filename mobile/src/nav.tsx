@@ -99,8 +99,8 @@ export const RootNavigator: React.FC = () => {
   return (
     <NavigationContainer theme={navTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!session ? (
-          <Stack.Screen name="Login" component={LoginScreen} />
+{!session ? (
+            <Stack.Screen name="Login" component={LoginScreen} />
         ) : session.role === 'admin' ? (
           <>
             <Stack.Screen name="AdminMain" component={AdminTabs} />
