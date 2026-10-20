@@ -83,6 +83,12 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ status: tripStatus, updated_by: 'Mobile' }),
       }),
+    stats: (period?: 'day' | 'month' | 'year') =>
+      apiFetch<{
+        day?: { trip_count: number; total_delivery_fee: number };
+        month?: { trip_count: number; total_delivery_fee: number };
+        year?: { trip_count: number; total_delivery_fee: number };
+      }>(`/deliveries/stats/${period ? `?period=${period}` : ''}`),
   },
   transactions: crud('/transactions/'),
   employees: crud('/employees/'),
@@ -133,8 +139,20 @@ export const api = {
     remove: (id: number | string) =>
       apiFetch<void>(`/attendance/${id}/`, { method: 'DELETE' }),
   },
-  company: () =>
-    listAll<Record<string, unknown>>('/company/').then((r) => r[0] ?? null),
+  company: {
+    get: () =>
+      listAll<Record<string, unknown>>('/company/').then((r) => r[0] ?? null),
+    update: (id: number | string, body: Record<string, unknown>) =>
+      apiFetch<Record<string, unknown>>(`/company/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      }),
+    create: (body: Record<string, unknown>) =>
+      apiFetch<Record<string, unknown>>('/company/', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+  },
   site: {
     contactInfo: {
       get: () => apiFetch<Record<string, unknown>>('/site/contact-info/'),

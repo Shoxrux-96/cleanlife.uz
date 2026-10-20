@@ -584,12 +584,22 @@ class DeliveryTripViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        new_status = request.data.get('status')
-        if new_status and new_status != instance.status:
-            valid, error = self._validate_status_transition(instance, new_status)
-            if not valid:
-                return Response({'detail': error}, status=status.HTTP_400_BAD_REQUEST)
+        # QOTISH QOIDASI: «Yetkazildi» holatidagi reysni hech narsa o'zgartira olmaydi
+        if instance.status == 'yetkazildi':
+            return Response(
+                {'detail': 'Bu reys «Yetkazildi» holatida QOTIRILGAN — o‘zgartirib bo‘lmaydi!'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.status == 'yetkazildi':
+            return Response(
+                {'detail': 'Bu reys «Yetkazildi» holatida QOTIRILGAN — o‘chirib bo‘lmaydi!'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)
 
     @action(detail=True, methods=['post'], url_path='status')
     def change_status(self, request, pk=None):
