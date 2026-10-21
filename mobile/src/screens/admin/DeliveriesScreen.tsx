@@ -1039,6 +1039,7 @@ const FullScreenMap: React.FC<{
         ref={mapRef}
         style={s.map}
         mapType="none"
+        zoomControlEnabled={false}
         showsUserLocation={false}
         initialRegion={cam}
         region={cam}
@@ -1139,20 +1140,7 @@ const FullScreenMap: React.FC<{
           </View>
         </View>
 
-        {/* O'ng tomon: zoom + joriy lokatsiya */}
-        <View style={s.sideCol}>
-          <TouchableOpacity style={s.sideBtn} onPress={() => zoomBy(0.6)}>
-            <Text style={s.sideBtnText}>＋</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={s.sideBtn} onPress={() => zoomBy(1 / 0.6)}>
-            <Text style={s.sideBtnText}>－</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[s.sideBtn, locating && s.sideBtnBusy]} onPress={goToMe}>
-            <Text style={s.sideBtnText}>📍</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Pastki panel: reys ma'lumoti + jonli + yo'l taqqoslash */}
+        {/* Pastki panel: reys ma'lumoti + boshqaruv + yo'l taqqoslash */}
         <View style={s.bottom}>
           <View style={s.bottomHead}>
             <Text style={s.bottomTrip} numberOfLines={1}>
@@ -1196,6 +1184,22 @@ const FullScreenMap: React.FC<{
               </Text>
             </View>
           ) : null}
+
+          {/* Boshqaruv: zoom + joriy lokatsiya (yagona, pastda) */}
+          <View style={s.ctrlBar}>
+            <Text style={s.ctrlBarLabel}>Xarita boshqaruvi</Text>
+            <View style={s.ctrlBarBtns}>
+              <TouchableOpacity style={s.ctrlBtn} onPress={() => zoomBy(0.6)}>
+                <Text style={s.ctrlBtnText}>＋</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.ctrlBtn} onPress={() => zoomBy(1 / 0.6)}>
+                <Text style={s.ctrlBtnText}>－</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[s.ctrlBtn, s.ctrlBtnLoc, locating && s.ctrlBtnBusy]} onPress={goToMe}>
+                <Text style={s.ctrlBtnText}>📍</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
           <Text style={s.attr}>© OpenStreetMap · {layer === 'street' ? 'mapnik' : 'Esri World Imagery'}</Text>
         </View>
@@ -1488,27 +1492,34 @@ const makeMapStyles = (colors: Palette) =>
     layerBtnActive: { backgroundColor: colors.gold, borderColor: colors.gold },
     layerBtnText: { color: colors.muted, fontSize: 11, fontWeight: '800' },
     layerBtnTextActive: { color: '#000' },
-    sideCol: {
-      position: 'absolute',
-      right: 12,
-      top: '50%',
+    ctrlBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
       gap: 8,
-      backgroundColor: colors.card + 'F2',
-      borderRadius: 14,
+      backgroundColor: colors.input,
+      borderRadius: 12,
       borderWidth: 1,
       borderColor: colors.cardBorder,
-      padding: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 7,
+      marginTop: 4,
     },
-    sideBtn: {
-      width: 44,
-      height: 44,
-      borderRadius: 12,
-      backgroundColor: colors.input,
+    ctrlBarLabel: { color: colors.faint, fontSize: 11, fontWeight: '700' },
+    ctrlBarBtns: { flexDirection: 'row', gap: 6 },
+    ctrlBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 11,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    sideBtnBusy: { backgroundColor: colors.gold },
-    sideBtnText: { color: colors.text, fontSize: 20, fontWeight: '900' },
+    ctrlBtnLoc: { backgroundColor: colors.gold, borderColor: colors.gold },
+    ctrlBtnBusy: { opacity: 0.6 },
+    ctrlBtnText: { color: colors.text, fontSize: 19, fontWeight: '900' },
     bottom: {
       position: 'absolute',
       left: 12,
