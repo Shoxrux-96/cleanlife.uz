@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Modal,
   Platform,
@@ -14,27 +13,51 @@ import {
   View,
 } from 'react-native';
 import { api } from '../../api';
-import { Btn, Card, Empty, Field, H1, Loader, Muted, Screen } from '../../components';
+import { Btn, Card, H1, Loader, Muted, Screen } from '../../components';
 import { fmtMoney, Palette } from '../../theme';
 import { useAppTheme } from '../../theme-context';
+import * as Location from 'expo-location';
 
 // react-native-maps faqat telefonda (webda codegen yo'q).
 // Expo Go da native modul yo'q — try/catch shart, aks holda butun ilova qora ekranda qotib qoladi.
 let MapView: any = null;
 let Marker: any = null;
 let Polyline: any = null;
+let UrlTile: any = null;
 if (Platform.OS !== 'web') {
   try {
     const maps = require('react-native-maps');
     MapView = maps.default;
     Marker = maps.Marker;
     Polyline = maps.Polyline;
+    UrlTile = maps.UrlTile;
   } catch {
     MapView = null;
     Marker = null;
     Polyline = null;
+    UrlTile = null;
   }
 }
+
+// OpenStreetMap plitalari (Google Maps API kaliti shart emas)
+const OSM_STREET = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const OSM_SATELLITE = 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+
+const haversineKm = (a: [number, number], b: [number, number]): number => {
+  const R = 6371;
+  const dLat = ((b[0] - a[0]) * Math.PI) / 180;
+  const dLng = ((b[1] - a[1]) * Math.PI) / 180;
+  const la1 = (a[0] * Math.PI) / 180;
+  const la2 = (b[0] * Math.PI) / 180;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+};
+
+const pathLengthKm = (coords: [number, number][]): number => {
+  let sum = 0;
+  for (let i = 1; i < coords.length; i++) sum += haversineKm(coords[i - 1], coords[i]);
+  return sum;
+};
 
 type Rec = Record<string, unknown>;
 
@@ -175,16 +198,18 @@ export const DeliveriesScreen: React.FC = () => {
   const [selectedId, setSelectedId] = useState<number | string | null>(null);
 
   // Xarita / jonli kuzatuv
-  const [liveTracking, setLiveTracking] = useState(true);
+  const [liveTracking] = useState(true);
   const [progressMap, setProgressMap] = useState<Record<string, number>>({});
   const [routeCache, setRouteCache] = useState<Record<string, RouteInfo>>({});
   const routesRef = useRef<Record<string, RouteInfo>>({});
   const pendingRef = useRef<Record<string, boolean>>({});
 
-  // Modal (CRUD)
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editing, setEditing] = useState<Rec | null>(null);
-  const [saving, setSaving] = useState(false);
+  // Qator boshqaruvi: select orqali holat + yetkazish haqi kiritish/saqlash
+  const [feeDraft, setFeeDraft] = useState<Record<string, string>>({});
+  const [statusDraft, setStatusDraft] = useState<Record<string, TripStatus>>({});
+  const [savingRow, setSavingRow] = useState<string | null>(null);
+  const [selectRow, setSelectRow] = useState<Rec | null>(null);
+  const [mapTrip, setMapTrip] = useState<Rec | null>(null);
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -203,6 +228,7 @@ export const DeliveriesScreen: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetch (loading -> loaded)
     load();
   }, [load]);
 
@@ -287,13 +313,17 @@ export const DeliveriesScreen: React.FC = () => {
   }, [selectedTrip, ensureRoute]);
 
   const selectedRoute = selectedTrip ? routeCache[String(idOf(selectedTrip))] : undefined;
-  const selectedProgress = !selectedTrip
-    ? 0
-    : str(selectedTrip, 'status') === 'yetkazildi'
-    ? 1
-    : str(selectedTrip, 'status') === 'kutilmoqda'
-    ? 0
-    : (progressMap[String(idOf(selectedTrip))] ?? 0);
+
+  // Har bir reys uchun joriy marshrut progressi (0..1)
+  const progressFor = (trip: Rec): number => {
+    const st = str(trip, 'status');
+    if (st === 'yetkazildi') return 1;
+    if (st === 'kutilmoqda') return 0;
+    return progressMap[String(idOf(trip))] ?? 0;
+  };
+
+  const selectedProgress = selectedTrip ? progressFor(selectedTrip) : 0;
+  const selectedProgressFor = progressFor;
 
   // --- Excel (CSV) eksport ---
   const handleExport = useCallback(async () => {
@@ -330,37 +360,57 @@ export const DeliveriesScreen: React.FC = () => {
     }
   }, [filtered]);
 
-  // --- CRUD ---
-  const openCreate = () => {
-    setEditing(null);
-    setModalVisible(true);
-  };
+  // --- Qator yozuvi: tanlangan holat + haq qiymati ---
+  const rawFee = (r: Rec): string =>
+    r.delivery_fee != null && r.delivery_fee !== '' ? String(r.delivery_fee) : '';
 
-  const openEdit = (r: Rec) => {
-    setEditing(r);
-    setModalVisible(true);
-  };
+  const draftStatus = (r: Rec): TripStatus =>
+    statusDraft[String(idOf(r))] ?? (str(r, 'status') as TripStatus);
 
-  const confirmDelete = (r: Rec) => {
-    Alert.alert(
-      "O'chirish",
-      `"${str(r, 'trip_code') || 'Yetkazma'}" yozuvini o'chirasizmi?`,
-      [
-        { text: 'Bekor qilish', style: 'cancel' },
-        {
-          text: "O'chirish",
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.deliveries.remove(idOf(r));
-              await load();
-            } catch (e) {
-              Alert.alert('Xatolik', e instanceof Error ? e.message : "O'chirishda xatolik.");
-            }
-          },
-        },
-      ],
-    );
+  const draftFee = (r: Rec): string => feeDraft[String(idOf(r))] ?? rawFee(r);
+
+  const isRowDirty = (r: Rec): boolean =>
+    draftStatus(r) !== str(r, 'status') || draftFee(r) !== rawFee(r);
+
+  const saveRow = async (r: Rec) => {
+    const key = String(idOf(r));
+    const locked = str(r, 'status') === 'yetkazildi';
+    if (locked) {
+      Alert.alert('Qotirilgan', 'Bu reys «Yetkazildi» holatida QOTIRILGAN — o‘zgartirib bo‘lmaydi!');
+      return;
+    }
+    const nextFee = draftFee(r).trim();
+    const nextStatus = draftStatus(r);
+    if (nextFee !== '' && Number.isNaN(Number(nextFee))) {
+      Alert.alert('Xatolik', "Yetkazish haqi faqat raqam bo'lishi kerak.");
+      return;
+    }
+    setSavingRow(key);
+    try {
+      if (nextFee !== rawFee(r)) {
+        await api.deliveries.update(idOf(r), {
+          delivery_fee: nextFee === '' ? null : Number(nextFee),
+        });
+      }
+      if (nextStatus !== str(r, 'status')) {
+        await api.deliveries.changeStatus(idOf(r), nextStatus);
+      }
+      setFeeDraft((p) => {
+        const n = { ...p };
+        delete n[key];
+        return n;
+      });
+      setStatusDraft((p) => {
+        const n = { ...p };
+        delete n[key];
+        return n;
+      });
+      await load();
+    } catch (e) {
+      Alert.alert('Xatolik', e instanceof Error ? e.message : 'Saqlashda xatolik.');
+    } finally {
+      setSavingRow(null);
+    }
   };
 
   const changeStatus = async (r: Rec, next: TripStatus) => {
@@ -374,7 +424,7 @@ export const DeliveriesScreen: React.FC = () => {
 
   const statFor = (key: 'day' | 'month' | 'year') => stats[key];
 
-  const COLS = { num: 46, trip: 200, client: 210, date: 150, driver: 190, fee: 120, status: 130 };
+  const COLS = { num: 46, trip: 200, client: 210, date: 150, driver: 190, fee: 130, status: 140, ctrl: 170 };
 
   const renderTable = () => (
     <View style={s.tableWrap}>
@@ -384,26 +434,30 @@ export const DeliveriesScreen: React.FC = () => {
         <Text style={[s.th, { width: COLS.client }]}>Mijoz & Manzil</Text>
         <Text style={[s.th, { width: COLS.date }]}>Sana & Vaqt</Text>
         <Text style={[s.th, { width: COLS.driver }]}>Haydovchi & Avto</Text>
-        <Text style={[s.th, { width: COLS.fee, textAlign: 'center' }]}>Haq</Text>
-        <Text style={[s.th, { width: COLS.status, textAlign: 'center' }]}>Holat</Text>
+        <Text style={[s.th, { width: COLS.fee, textAlign: 'center' }]}>{"Haq (so'm)"}</Text>
+        <Text style={[s.th, { width: COLS.status, textAlign: 'center' }]}>Holat (select)</Text>
+        <Text style={[s.th, { width: COLS.ctrl, textAlign: 'center' }]}>Amallar</Text>
       </View>
       {filtered.map((trip, idx) => {
         const st = str(trip, 'status');
         const locked = st === 'yetkazildi';
         const isSel = selectedTrip && idOf(selectedTrip) === idOf(trip);
+        const dirty = isRowDirty(trip);
+        const busy = savingRow === String(idOf(trip));
         return (
-          <TouchableOpacity
+          <View
             key={String(idOf(trip))}
             style={[s.tableRow, isSel && s.tableRowActive]}
-            onPress={() => {
-              setSelectedId(idOf(trip));
-              if (layoutMode === 'map') setLayoutMode('split');
-              openEdit(trip);
-            }}
           >
             <Text style={[s.td, { width: COLS.num, color: colors.faint }]}>{idx + 1}</Text>
 
-            <View style={[s.td, { width: COLS.trip }]}>
+            <TouchableOpacity
+              style={[s.td, { width: COLS.trip }]}
+              onPress={() => {
+                setSelectedId(idOf(trip));
+                if (layoutMode === 'map') setLayoutMode('split');
+              }}
+            >
               <Text style={[s.tdMono, { color: colors.gold }]}>{str(trip, 'trip_code') || '—'}</Text>
               {str(trip, 'waybill_ttn_number') ? (
                 <Text style={s.tdSub}>Yuk xati: {str(trip, 'waybill_ttn_number')}</Text>
@@ -411,7 +465,7 @@ export const DeliveriesScreen: React.FC = () => {
               {str(trip, 'order_number') ? (
                 <Text style={s.tdSub}>Buyurtma: {str(trip, 'order_number')}</Text>
               ) : null}
-            </View>
+            </TouchableOpacity>
 
             <View style={[s.td, { width: COLS.client }]}>
               <Text style={[s.tdBold, { color: colors.text }]}>{str(trip, 'client_name') || '—'}</Text>
@@ -433,23 +487,68 @@ export const DeliveriesScreen: React.FC = () => {
               ) : null}
             </View>
 
-            <View style={[s.td, { width: COLS.fee, alignItems: 'center' }]}>
-              <Text style={[s.tdMono, { color: locked ? colors.green : colors.text }]}>
-                {locked && num(trip.delivery_fee) > 0
-                  ? fmtFee(trip.delivery_fee)
-                  : num(trip.delivery_fee) > 0
-                  ? fmtFee(trip.delivery_fee)
-                  : '—'}
-              </Text>
+            {/* Haq — kiriting / tahrirlang */}
+            <View style={[s.td, { width: COLS.fee }]}>
+              <TextInput
+                style={[s.cellInput, locked && s.cellInputLocked]}
+                value={draftFee(trip)}
+                onChangeText={(t) => setFeeDraft((p) => ({ ...p, [String(idOf(trip))]: t }))}
+                onBlur={() => {
+                  if (isRowDirty(trip)) saveRow(trip);
+                }}
+                placeholder="0"
+                placeholderTextColor={colors.faint}
+                keyboardType="numeric"
+                editable={!locked}
+              />
+              {num(trip.delivery_fee) > 0 && draftFee(trip) === rawFee(trip) ? (
+                <Text style={s.tdSub}>{fmtFee(trip.delivery_fee)}</Text>
+              ) : null}
             </View>
 
+            {/* Holat — select tegi orqali o'zgartirish */}
             <View style={[s.td, { width: COLS.status, alignItems: 'center' }]}>
-              <View style={[s.badge, { borderColor: badgeColor(st, colors) }]}>
-                <Text style={[s.badgeText, { color: badgeColor(st, colors) }]}>{statusLabel(st)}</Text>
-              </View>
+              <TouchableOpacity
+                style={[
+                  s.selectBtn,
+                  { borderColor: badgeColor(st, colors) },
+                  locked && s.selectBtnLocked,
+                  draftStatus(trip) !== st && s.selectBtnDirty,
+                ]}
+                disabled={locked}
+                onPress={() => setSelectRow(trip)}
+              >
+                <Text
+                  style={[
+                    s.selectBtnText,
+                    { color: locked ? colors.faint : badgeColor(st, colors) },
+                    draftStatus(trip) !== st && { color: colors.gold },
+                  ]}
+                >
+                  {statusLabel(draftStatus(trip))} ▾
+                </Text>
+              </TouchableOpacity>
               {locked ? <Text style={s.locked}>🔒 Qotirilgan</Text> : null}
             </View>
-          </TouchableOpacity>
+
+            {/* Amallar — har bir reys uchun Xarita + Saqlash */}
+            <View style={[s.td, { width: COLS.ctrl }]}>
+              <View style={s.ctrlRow}>
+                <TouchableOpacity style={s.mapBtn} onPress={() => setMapTrip(trip)}>
+                  <Text style={s.mapBtnText}>🗺️ Xarita</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[s.saveBtn, dirty && !locked ? s.saveBtnActive : s.saveBtnIdle, busy && s.saveBtnBusy]}
+                  disabled={!dirty || busy || locked}
+                  onPress={() => saveRow(trip)}
+                >
+                  <Text style={[s.saveBtnText, dirty && !locked && s.saveBtnTextActive]}>
+                    {busy ? '…' : '💾 Saqlash'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
         );
       })}
       {filtered.length === 0 && (
@@ -474,7 +573,7 @@ export const DeliveriesScreen: React.FC = () => {
               style={s.mapFallbackRow}
               onPress={() => {
                 setSelectedId(idOf(d));
-                openEdit(d);
+                setMapTrip(d);
               }}
             >
               <Text style={[s.tdMono, { color: colors.gold }]}>{str(d, 'trip_code')}</Text>
@@ -493,8 +592,8 @@ export const DeliveriesScreen: React.FC = () => {
     const driving = items.filter((d) => str(d, 'status') === 'yolda');
     const coords = driving.length
       ? pointAlongCoords(
-          routesRef.current[String(idOf(driving[0]))]?.coords?.length > 1
-            ? routesRef.current[String(idOf(driving[0]))].coords
+          routeCache[String(idOf(driving[0]))]?.coords?.length > 1
+            ? routeCache[String(idOf(driving[0]))].coords
             : [WAREHOUSE, tripCoords(driving[0])],
           progressMap[String(idOf(driving[0]))] ?? 0,
         )
@@ -511,7 +610,7 @@ export const DeliveriesScreen: React.FC = () => {
           </View>
           {activeCount > 0 ? (
             <View style={s.onwayBadge}>
-              <Text style={s.onwayBadgeText}>{activeCount} ta yo'lda</Text>
+              <Text style={s.onwayBadgeText}>{activeCount} {'ta yo\'lda'}</Text>
             </View>
           ) : null}
         </View>
@@ -760,186 +859,351 @@ export const DeliveriesScreen: React.FC = () => {
         )}
       </ScrollView>
 
-      {/* FAB — Yangi reys */}
-      <TouchableOpacity style={s.fab} onPress={openCreate}>
-        <Text style={s.fabText}>+</Text>
-      </TouchableOpacity>
-
-      {/* CRUD Modal */}
-      <TripModal
-        visible={modalVisible}
-        editing={editing}
+      {/* To'liq ekran xarita (har bir reys uchun) */}
+      <FullScreenMap
+        trip={mapTrip}
+        route={mapTrip ? routeCache[String(idOf(mapTrip))] : undefined}
+        progress={!mapTrip ? 0 : selectedProgressFor(mapTrip)}
         colors={colors}
-        onClose={() => setModalVisible(false)}
-        onSaved={async () => {
-          setModalVisible(false);
-          await load();
+        onClose={() => setMapTrip(null)}
+      />
+
+      {/* Holat select tegi */}
+      <StatusSelect
+        trip={selectRow}
+        value={selectRow ? draftStatus(selectRow) : 'kutilmoqda'}
+        colors={colors}
+        onClose={() => setSelectRow(null)}
+        onPick={(next) => {
+          if (selectRow) {
+            setStatusDraft((p) => ({ ...p, [String(idOf(selectRow))]: next }));
+          }
+          setSelectRow(null);
         }}
-        api={api}
       />
     </Screen>
   );
 };
 
-// ---------- Modal: yangi yoki tahrirlash ----------
-const TripModal: React.FC<{
-  visible: boolean;
-  editing: Rec | null;
+// ---------- Holat select tegi (faqat status o'zgartirish) ----------
+const StatusSelect: React.FC<{
+  trip: Rec | null;
+  value: TripStatus;
   colors: Palette;
   onClose: () => void;
-  onSaved: () => void;
-  api: typeof api;
-}> = ({ visible, editing, colors, onClose, onSaved, api }) => {
-  const isEdit = !!editing;
-  const [saving, setSaving] = useState(false);
-  const [tripCode, setTripCode] = useState('');
-  const [driverName, setDriverName] = useState('');
-  const [driverPhone, setDriverPhone] = useState('');
-  const [vehicleModel, setVehicleModel] = useState('');
-  const [vehiclePlate, setVehiclePlate] = useState('');
-  const [destination, setDestination] = useState('');
-  const [clientName, setClientName] = useState('');
-  const [orderNumber, setOrderNumber] = useState('');
-  const [cargo, setCargo] = useState('');
-  const [fee, setFee] = useState('');
-  const [status, setStatus] = useState<string>('kutilmoqda');
+  onPick: (next: TripStatus) => void;
+}> = ({ trip, value, colors, onClose, onPick }) => {
+  const s = makeSelectStyles(colors);
+  return (
+    <Modal visible={!!trip} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableOpacity style={s.backdrop} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity style={s.box} activeOpacity={1} onPress={() => {}}>
+          <Text style={s.title}>Holatni tanlang</Text>
+          {trip ? (
+            <Text style={s.sub}>
+              {str(trip, 'trip_code')} · {str(trip, 'client_name') || str(trip, 'destination_address')}
+            </Text>
+          ) : null}
+          {STATUSES.map((st) => (
+            <TouchableOpacity
+              key={st}
+              style={[s.option, value === st && s.optionActive]}
+              onPress={() => onPick(st)}
+            >
+              <View style={[s.dot, { backgroundColor: badgeColor(st, colors) }]} />
+              <Text style={[s.optionText, value === st && s.optionTextActive]}>{statusLabel(st)}</Text>
+              {value === st ? <Text style={s.check}>✓</Text> : null}
+            </TouchableOpacity>
+          ))}
+          <Text style={s.hint}>Tanlagach jadvaldagi «💾 Saqlash» tugmasini bosing.</Text>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  );
+};
 
-  const locked = isEdit && str(editing, 'status') === 'yetkazildi';
+// ---------- To'liq ekran OpenStreetMap (har bir reys uchun) ----------
+const FullScreenMap: React.FC<{
+  trip: Rec | null;
+  route?: RouteInfo;
+  progress: number;
+  colors: Palette;
+  onClose: () => void;
+}> = ({ trip, route, progress, colors, onClose }) => {
+  const s = makeMapStyles(colors);
+  const [layer, setLayer] = useState<'street' | 'satellite'>('street');
+  const [cam, setCam] = useState({
+    latitude: WAREHOUSE[0],
+    longitude: WAREHOUSE[1],
+    latitudeDelta: 0.08,
+    longitudeDelta: 0.13,
+  });
+  const [userPos, setUserPos] = useState<[number, number] | null>(null);
+  const [locating, setLocating] = useState(false);
+  const mapRef = useRef<any>(null);
 
+  const dest = trip ? tripCoords(trip) : TASHKENT;
+  const road = route && route.coords.length > 1 ? route.coords : null;
+  const st = trip ? str(trip, 'status') : '';
+  const prog = st === 'yetkazildi' ? 1 : st === 'kutilmoqda' ? 0 : progress;
+
+  // Reysga borganda kamerani marshrut bo'ylab moslash
+  const tripKey = trip ? String(idOf(trip)) : '';
   useEffect(() => {
-    if (!visible) return;
-    if (editing) {
-      setTripCode(str(editing, 'trip_code'));
-      setDriverName(str(editing, 'driver_name'));
-      setDriverPhone(str(editing, 'driver_phone'));
-      setVehicleModel(str(editing, 'vehicle_model'));
-      setVehiclePlate(str(editing, 'vehicle_plate'));
-      setDestination(str(editing, 'destination_address'));
-      setClientName(str(editing, 'client_name'));
-      setOrderNumber(str(editing, 'order_number'));
-      setCargo(str(editing, 'cargo_summary'));
-      setFee(editing.delivery_fee != null && editing.delivery_fee !== '' ? String(editing.delivery_fee) : '');
-      setStatus(str(editing, 'status'));
-    } else {
-      const next = `REYS-${Date.now().toString().slice(-6)}`;
-      setTripCode(next);
-      setDriverName('');
-      setDriverPhone('');
-      setVehicleModel('');
-      setVehiclePlate('');
-      setDestination('');
-      setClientName('');
-      setOrderNumber('');
-      setCargo('');
-      setFee('');
-      setStatus('kutilmoqda');
-    }
-  }, [visible, editing]);
+    if (!trip) return;
+    const next = {
+      latitude: (WAREHOUSE[0] + dest[0]) / 2,
+      longitude: (WAREHOUSE[1] + dest[1]) / 2,
+      latitudeDelta: Math.max(0.03, Math.abs(dest[0] - WAREHOUSE[0]) * 2.4),
+      longitudeDelta: Math.max(0.05, Math.abs(dest[1] - WAREHOUSE[1]) * 2.4),
+    };
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- kamerani reysga moslash
+    setCam(next);
+    const t = setTimeout(() => mapRef.current?.animateToRegion(next, 450), 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripKey]);
 
-  const save = async () => {
-    if (!tripCode.trim()) {
-      Alert.alert('Xatolik', 'Reys kodi majburiy.');
+  const zoomBy = (factor: number) => {
+    const nd = Math.min(1.5, Math.max(0.002, cam.latitudeDelta * factor));
+    const next = { ...cam, latitudeDelta: nd, longitudeDelta: nd * 1.7 };
+    setCam(next);
+    mapRef.current?.animateToRegion(next, 220);
+  };
+
+  const goToMe = async () => {
+    if (Platform.OS === 'web') {
+      Alert.alert('Joriy lokatsiya', 'Bu funksiya telefonda ishlaydi.');
       return;
     }
-    setSaving(true);
-    const body: Rec = {
-      trip_code: tripCode.trim(),
-      driver_name: driverName.trim(),
-      driver_phone: driverPhone.trim() || null,
-      vehicle_model: vehicleModel.trim(),
-      vehicle_plate: vehiclePlate.trim(),
-      destination_address: destination.trim(),
-      client_name: clientName.trim(),
-      order_number: orderNumber.trim(),
-      cargo_summary: cargo.trim(),
-      delivery_fee: fee.trim() === '' ? null : Number(fee),
-    };
     try {
-      if (isEdit && !locked) {
-        const upd: Rec = { ...body };
-        if (status !== str(editing, 'status')) {
-          // holatni alohida status endpoint orqali o'tkazamiz (qotish qoidasi)
-          await api.deliveries.update(idOf(editing), upd);
-          await api.deliveries.changeStatus(idOf(editing), status);
-        } else {
-          await api.deliveries.update(idOf(editing), upd);
-        }
-      } else if (isEdit && locked) {
-        // qotirilgan — faqat ko'rsatamiz
-        Alert.alert('Qotirilgan', 'Bu reys «Yetkazildi» holatida QOTIRILGAN — o‘zgartirib bo‘lmaydi!');
-      } else {
-        await api.deliveries.create(body);
+      setLocating(true);
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (perm.status !== 'granted') {
+        Alert.alert('Ruxsat kerak', 'Joriy lokatsiyani ko‘rish uchun ruxsat bering.');
+        return;
       }
-      onSaved();
-    } catch (e) {
-      Alert.alert('Xatolik', e instanceof Error ? e.message : 'Saqlashda xatolik.');
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const next = {
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+        latitudeDelta: 0.02,
+        longitudeDelta: 0.03,
+      };
+      setUserPos([next.latitude, next.longitude]);
+      setCam(next);
+      mapRef.current?.animateToRegion(next, 400);
+    } catch {
+      Alert.alert('Xatolik', 'Lokatsiyani aniqlab bo‘lmadi.');
     } finally {
-      setSaving(false);
+      setLocating(false);
     }
   };
 
-  const s = makeModalStyles(colors);
+  // --- Yo'l taqqoslash: road (OSRM) vs to'g'ri chiziq ---
+  const roadKm = road ? pathLengthKm(road) : 0;
+  const directKm = haversineKm(WAREHOUSE, dest);
+  const shownKm = road ? roadKm : directKm;
+  const deltaKm = road ? Math.max(0, roadKm - directKm) : 0;
+  const deltaPct = directKm > 0 ? Math.round((deltaKm / directKm) * 100) : 0;
+
+  const driverPos: [number, number] | null =
+    road && (st === 'yolda' || st === 'yetkazildi') ? pointAlongCoords(road, prog) : null;
+
+  const mapBody = () => {
+    if (Platform.OS === 'web') {
+      const bboxList = [WAREHOUSE, dest, ...(road ?? [])];
+      const lats = bboxList.map((c) => c[0]);
+      const lngs = bboxList.map((c) => c[1]);
+      const pad = 0.01;
+      const bbox = [
+        Math.min(...lngs) - pad,
+        Math.min(...lats) - pad,
+        Math.max(...lngs) + pad,
+        Math.max(...lats) + pad,
+      ].join('%2C');
+      return React.createElement('iframe' as never, {
+        title: 'OpenStreetMap',
+        src: `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${dest[0]}%2C${dest[1]}`,
+        style: { flex: 1, width: '100%', border: 'none' } as never,
+      });
+    }
+
+    if (!MapView || !UrlTile) {
+      return (
+        <View style={s.noMap}>
+          <Text style={s.noMapTitle}>Xarita faqat APK (build) da ochiladi</Text>
+          <Muted>OpenStreetMap plitalari uchun ilovani qurib o‘rnating.</Muted>
+        </View>
+      );
+    }
+
+    const tileUrl = layer === 'street' ? OSM_STREET : OSM_SATELLITE;
+
+    return (
+      <MapView
+        ref={mapRef}
+        style={s.map}
+        mapType="none"
+        showsUserLocation={false}
+        initialRegion={cam}
+        region={cam}
+        onRegionChangeComplete={(r: any) => setCam(r)}
+      >
+        <UrlTile urlTemplate={tileUrl} maximumZ={19} minimumZ={0} flipY={layer === 'satellite'} zIndex={-1} />
+
+        {/* Ombor */}
+        <Marker coordinate={{ latitude: WAREHOUSE[0], longitude: WAREHOUSE[1] }} title="Asosiy Ombor" anchor={{ x: 0.5, y: 0.5 }}>
+          <Text style={s.markerEmoji}>🏭</Text>
+        </Marker>
+
+        {/* Manzil */}
+        <Marker coordinate={{ latitude: dest[0], longitude: dest[1] }} title={str(trip ?? {}, 'client_name')} description={str(trip ?? {}, 'destination_address')} anchor={{ x: 0.5, y: 1 }}>
+          <Text style={s.markerEmoji}>📍</Text>
+        </Marker>
+
+        {/* Road route (OSRM) */}
+        {road ? (
+          <Polyline
+            coordinates={road.map(([la, ln]) => ({ latitude: la, longitude: ln }))}
+            strokeColor={colors.blue}
+            strokeWidth={5}
+          />
+        ) : null}
+
+        {/* Taqqoslash uchun to'g'ri chiziq */}
+        <Polyline
+          coordinates={[
+            { latitude: WAREHOUSE[0], longitude: WAREHOUSE[1] },
+            { latitude: dest[0], longitude: dest[1] },
+          ]}
+          strokeColor={colors.muted}
+          strokeWidth={2}
+          lineDashPattern={[6, 6]}
+        />
+
+        {/* Jonli haydovchi */}
+        {driverPos ? (
+          <Marker
+            coordinate={{ latitude: driverPos[0], longitude: driverPos[1] }}
+            title={`Haydovchi: ${str(trip ?? {}, 'driver_name') || '—'}`}
+            description={`${Math.round(prog * 100)}% · ${fmtRoadDistance(shownKm * (1 - prog))} qoldi`}
+            anchor={{ x: 0.5, y: 0.5 }}
+            tracksViewChanges={false}
+          >
+            <View style={s.driverBubble}>
+              <Text style={s.driverEmoji}>🚚</Text>
+            </View>
+          </Marker>
+        ) : null}
+
+        {/* Joriy lokatsiya */}
+        {userPos ? (
+          <Marker
+            coordinate={{ latitude: userPos[0], longitude: userPos[1] }}
+            title="Mening joylashuvim"
+            anchor={{ x: 0.5, y: 0.5 }}
+          >
+            <View style={s.userDot} />
+          </Marker>
+        ) : null}
+      </MapView>
+    );
+  };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={s.overlay}>
-        <View style={s.sheet}>
-          <View style={s.sheetHead}>
-            <Text style={s.sheetTitle}>{isEdit ? 'Reysni tahrirlash' : 'Yangi reys'}</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={s.closeText}>✕</Text>
+    <Modal visible={!!trip} animationType="slide" onRequestClose={onClose}>
+      <View style={s.root}>
+        {mapBody()}
+
+        {/* Tepa panel: orqaga + sarlavha + plita rejimi */}
+        <View style={s.topBar}>
+          <TouchableOpacity style={s.backBtn} onPress={onClose}>
+            <Text style={s.backBtnText}>←</Text>
+          </TouchableOpacity>
+          <View style={s.topTitle}>
+            <Text style={s.topTitleMain} numberOfLines={1}>
+              {trip ? str(trip, 'trip_code') || 'Reys' : 'OpenStreetMap'}
+            </Text>
+            <Text style={s.topTitleSub} numberOfLines={1}>
+              {trip ? `${str(trip, 'driver_name') || '—'} · ${str(trip, 'vehicle_plate')}` : 'To‘liq ekran'}
+            </Text>
+          </View>
+          <View style={s.layerRow}>
+            <TouchableOpacity
+              style={[s.layerBtn, layer === 'street' && s.layerBtnActive]}
+              onPress={() => setLayer('street')}
+            >
+              <Text style={[s.layerBtnText, layer === 'street' && s.layerBtnTextActive]}>🛣 Ko‘cha</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.layerBtn, layer === 'satellite' && s.layerBtnActive]}
+              onPress={() => setLayer('satellite')}
+            >
+              <Text style={[s.layerBtnText, layer === 'satellite' && s.layerBtnTextActive]}>🛰 Sputnik</Text>
             </TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={s.form}>
-            <Field label="Reys kodi" value={tripCode} onChange={setTripCode} placeholder="REYS-..." />
-            <Field label="Haydovchi" value={driverName} onChange={setDriverName} placeholder="F.I.SH" />
-            <Field label="Haydovchi telefon" value={driverPhone} onChange={setDriverPhone} placeholder="+998 ..." keyboard="phone-pad" />
-            <Field label="Avto model" value={vehicleModel} onChange={setVehicleModel} placeholder="Isuzu NPR" />
-            <Field label="Avto raqami" value={vehiclePlate} onChange={setVehiclePlate} placeholder="01A123BB" />
-            <Field label="Mijoz" value={clientName} onChange={setClientName} placeholder="Mijoz nomi" />
-            <Field label="Manzil" value={destination} onChange={setDestination} placeholder="Yetkazib berish manzili" multiline />
-            <Field label="Buyurtma raqami" value={orderNumber} onChange={setOrderNumber} placeholder="BUS-..." />
-            <Field label="Yuk tavsifi" value={cargo} onChange={setCargo} placeholder="20 dona ..." multiline />
-            <Field label="Yetkazish haqi (so'm)" value={fee} onChange={setFee} placeholder="0" keyboard="numeric" />
+        </View>
 
-            <Text style={s.fieldLabel}>Holat</Text>
-            <View style={s.statusRow}>
-              {STATUSES.map((st) => (
-                <TouchableOpacity
-                  key={st}
-                  style={[s.statusBtn, status === st && s.statusBtnActive]}
-                  disabled={locked}
-                  onPress={() => setStatus(st)}
-                >
-                  <Text style={[s.statusBtnText, status === st && s.statusBtnTextActive]}>
-                    {statusLabel(st)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+        {/* O'ng tomon: zoom + joriy lokatsiya */}
+        <View style={s.sideCol}>
+          <TouchableOpacity style={s.sideBtn} onPress={() => zoomBy(0.6)}>
+            <Text style={s.sideBtnText}>＋</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.sideBtn} onPress={() => zoomBy(1 / 0.6)}>
+            <Text style={s.sideBtnText}>－</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[s.sideBtn, locating && s.sideBtnBusy]} onPress={goToMe}>
+            <Text style={s.sideBtnText}>📍</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Pastki panel: reys ma'lumoti + jonli + yo'l taqqoslash */}
+        <View style={s.bottom}>
+          <View style={s.bottomHead}>
+            <Text style={s.bottomTrip} numberOfLines={1}>
+              {trip ? str(trip, 'client_name') || str(trip, 'destination_address') : ''}
+            </Text>
+            <View style={[s.livePill, st === 'yolda' ? s.livePillOn : s.livePillOff]}>
+              <Text style={[s.livePillText, { color: st === 'yolda' ? colors.green : colors.faint }]}>
+                {st === 'yolda' ? '● JONLI' : statusLabel(st)}
+              </Text>
             </View>
-            {locked ? (
-              <Text style={s.lockedNote}>🔒 Bu reys «Yetkazildi» holatida QOTIRILGAN — o‘zgartirib bo‘lmaydi!</Text>
-            ) : null}
-          </ScrollView>
-          <View style={s.sheetActions}>
-            {isEdit && !locked ? (
-              <Btn
-                title="O'chirish"
-                danger
-                onPress={async () => {
-                  try {
-                    await api.deliveries.remove(idOf(editing!));
-                    Alert.alert('OK', 'Reys o‘chirildi.');
-                    onSaved();
-                  } catch (e) {
-                    Alert.alert('Xatolik', e instanceof Error ? e.message : "O'chirishda xatolik.");
-                  }
-                }}
-              />
-            ) : null}
-            <Btn title="Bekor qilish" onPress={onClose} ghost />
-            <Btn title={saving ? 'Saqlanmoqda…' : 'Saqlash'} onPress={save} />
           </View>
+          <Text style={s.bottomAddr} numberOfLines={1}>
+            📍 {trip ? str(trip, 'destination_address') : '—'}
+          </Text>
+
+          <View style={s.compareRow}>
+            <View style={s.compareBox}>
+              <Text style={s.compareLabel}>Yo‘l (OSRM)</Text>
+              <Text style={[s.compareValue, { color: colors.blue }]}>{fmtRoadDistance(roadKm)}</Text>
+            </View>
+            <View style={s.compareBox}>
+              <Text style={s.compareLabel}>To‘g‘ri chiziq</Text>
+              <Text style={[s.compareValue, { color: colors.muted }]}>{fmtRoadDistance(directKm)}</Text>
+            </View>
+            <View style={s.compareBox}>
+              <Text style={s.compareLabel}>Farq</Text>
+              <Text style={[s.compareValue, { color: colors.gold }]}>
+                +{fmtRoadDistance(deltaKm)} ({deltaPct}%)
+              </Text>
+            </View>
+          </View>
+
+          {st === 'yolda' || st === 'yetkazildi' ? (
+            <View style={s.progressWrap}>
+              <View style={s.progressTrack}>
+                <View style={[s.progressFill, { width: `${Math.round(prog * 100)}%` }]} />
+              </View>
+              <Text style={s.progressMeta}>
+                {Math.round(prog * 100)}% · qolgan {fmtRoadDistance(shownKm * (1 - prog))}
+                {route && route.duration > 0 ? ` · ~${fmtRoadDuration(route.duration * (1 - prog))}` : ''}
+              </Text>
+            </View>
+          ) : null}
+
+          <Text style={s.attr}>© OpenStreetMap · {layer === 'street' ? 'mapnik' : 'Esri World Imagery'}</Text>
         </View>
       </View>
     </Modal>
@@ -1022,7 +1286,7 @@ const makeStyles = (colors: Palette) =>
     },
     tableHeaderTitle: { color: colors.text, fontWeight: '800', fontSize: 13 },
     tableHeaderCount: { color: colors.faint, fontSize: 11 },
-    tableWrap: { minWidth: 1006 },
+    tableWrap: { minWidth: 1248 },
     tableHeadRow: { flexDirection: 'row', backgroundColor: colors.bg, borderBottomWidth: 1, borderBottomColor: colors.cardBorder, paddingVertical: 10 },
     tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.cardBorder, paddingVertical: 10, paddingHorizontal: 6 },
     tableRowActive: { backgroundColor: colors.gold + '14' },
@@ -1037,6 +1301,47 @@ const makeStyles = (colors: Palette) =>
     badge: { borderWidth: 1, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
     badgeText: { fontSize: 11, fontWeight: '800' },
     locked: { color: colors.faint, fontSize: 9, marginTop: 2 },
+    cellInput: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 8,
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+      color: colors.text,
+      fontSize: 12,
+      fontWeight: '700',
+      backgroundColor: colors.input,
+      textAlign: 'right',
+      minWidth: 90,
+    },
+    cellInputLocked: { opacity: 0.6, backgroundColor: colors.bg },
+    selectBtn: {
+      borderWidth: 1.5,
+      borderRadius: 20,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      minWidth: 108,
+      alignItems: 'center',
+      backgroundColor: colors.input,
+    },
+    selectBtnLocked: { opacity: 0.7 },
+    selectBtnDirty: { borderColor: colors.gold, backgroundColor: colors.gold + '1A' },
+    selectBtnText: { fontSize: 11, fontWeight: '800' },
+    ctrlRow: { flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center' },
+    mapBtn: {
+      backgroundColor: colors.blue,
+      borderRadius: 10,
+      paddingHorizontal: 10,
+      paddingVertical: 9,
+      alignItems: 'center',
+    },
+    mapBtnText: { color: '#fff', fontSize: 11, fontWeight: '800' },
+    saveBtn: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 9, alignItems: 'center' },
+    saveBtnActive: { backgroundColor: colors.gold },
+    saveBtnIdle: { backgroundColor: colors.cardBorder },
+    saveBtnBusy: { opacity: 0.7 },
+    saveBtnText: { color: colors.muted, fontSize: 11, fontWeight: '800' },
+    saveBtnTextActive: { color: '#000' },
     mapWrap: { padding: 0, overflow: 'hidden' },
     mapHead: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderBottomWidth: 1, borderBottomColor: colors.cardBorder },
     mapTitle: { color: colors.text, fontWeight: '800', fontSize: 13, flex: 1 },
@@ -1061,51 +1366,151 @@ const makeStyles = (colors: Palette) =>
     errorText: { color: colors.red, fontSize: 14, textAlign: 'center' },
     statCard: { flex: 1, minWidth: 150, borderWidth: 1, borderRadius: 12, padding: 12 },
     statCardActive: { borderColor: colors.gold },
-    fab: {
+  });
+
+const makeSelectStyles = (colors: Palette) =>
+  StyleSheet.create({
+    backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', padding: 24 },
+    box: { backgroundColor: colors.card, borderRadius: 16, padding: 16, gap: 8, borderWidth: 1, borderColor: colors.cardBorder },
+    title: { color: colors.text, fontWeight: '900', fontSize: 15 },
+    sub: { color: colors.muted, fontSize: 12, marginBottom: 6 },
+    option: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 12,
+      paddingVertical: 13,
+      paddingHorizontal: 14,
+      backgroundColor: colors.input,
+    },
+    optionActive: { borderColor: colors.gold, backgroundColor: colors.gold + '1A' },
+    dot: { width: 10, height: 10, borderRadius: 5 },
+    optionText: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '700' },
+    optionTextActive: { color: colors.gold, fontWeight: '900' },
+    check: { color: colors.gold, fontSize: 16, fontWeight: '900' },
+    hint: { color: colors.faint, fontSize: 11, marginTop: 4 },
+  });
+
+const makeMapStyles = (colors: Palette) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: colors.bg },
+    map: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+    noMap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 24 },
+    noMapTitle: { color: colors.text, fontWeight: '800', fontSize: 14, textAlign: 'center' },
+    markerEmoji: { fontSize: 26 },
+    driverBubble: {
+      backgroundColor: colors.gold,
+      borderRadius: 18,
+      paddingHorizontal: 8,
+      paddingVertical: 5,
+      borderWidth: 2,
+      borderColor: '#000',
+    },
+    driverEmoji: { fontSize: 16 },
+    userDot: {
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      backgroundColor: '#2563EB',
+      borderWidth: 3,
+      borderColor: '#fff',
+    },
+    topBar: {
       position: 'absolute',
-      right: 20,
-      bottom: 24,
-      width: 56,
-      height: 56,
-      borderRadius: 28,
+      top: Platform.OS === 'ios' ? 54 : 26,
+      left: 12,
+      right: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: colors.card + 'F2',
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      paddingHorizontal: 8,
+      paddingVertical: 7,
+    },
+    backBtn: {
+      width: 38,
+      height: 38,
+      borderRadius: 12,
       backgroundColor: colors.gold,
       alignItems: 'center',
       justifyContent: 'center',
-      shadowColor: '#000',
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 6,
     },
-    fabText: { color: '#000', fontSize: 30, fontWeight: '900', lineHeight: 34 },
-  });
-
-const makeModalStyles = (colors: Palette) =>
-  StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-    sheet: {
-      backgroundColor: colors.card,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
-      maxHeight: '92%',
+    backBtnText: { color: '#000', fontSize: 22, fontWeight: '900', lineHeight: 26 },
+    topTitle: { flex: 1 },
+    topTitleMain: { color: colors.text, fontWeight: '900', fontSize: 13 },
+    topTitleSub: { color: colors.faint, fontSize: 10, marginTop: 1 },
+    layerRow: { flexDirection: 'row', gap: 4 },
+    layerBtn: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 10,
+      paddingHorizontal: 9,
+      paddingVertical: 8,
+      backgroundColor: colors.input,
     },
-    sheetHead: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
+    layerBtnActive: { backgroundColor: colors.gold, borderColor: colors.gold },
+    layerBtnText: { color: colors.muted, fontSize: 11, fontWeight: '800' },
+    layerBtnTextActive: { color: '#000' },
+    sideCol: {
+      position: 'absolute',
+      right: 12,
+      top: '50%',
+      gap: 8,
+      backgroundColor: colors.card + 'F2',
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      padding: 6,
+    },
+    sideBtn: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      backgroundColor: colors.input,
       alignItems: 'center',
-      padding: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.cardBorder,
+      justifyContent: 'center',
     },
-    sheetTitle: { color: colors.text, fontWeight: '800', fontSize: 16 },
-    closeText: { color: colors.muted, fontSize: 20 },
-    form: { padding: 16, gap: 4 },
-    fieldLabel: { color: colors.muted, fontSize: 12, marginBottom: 6, marginTop: 8, textTransform: 'uppercase', letterSpacing: 1 },
-    statusRow: { flexDirection: 'row', gap: 8 },
-    statusBtn: { flex: 1, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
-    statusBtnActive: { backgroundColor: colors.gold, borderColor: colors.gold },
-    statusBtnText: { color: colors.muted, fontSize: 12, fontWeight: '700' },
-    statusBtnTextActive: { color: '#000', fontWeight: '900' },
-    lockedNote: { color: colors.red, fontSize: 11, marginTop: 8 },
-    sheetActions: { flexDirection: 'row', gap: 10, padding: 16, borderTopWidth: 1, borderTopColor: colors.cardBorder },
+    sideBtnBusy: { backgroundColor: colors.gold },
+    sideBtnText: { color: colors.text, fontSize: 20, fontWeight: '900' },
+    bottom: {
+      position: 'absolute',
+      left: 12,
+      right: 12,
+      bottom: Platform.OS === 'ios' ? 34 : 16,
+      backgroundColor: colors.card + 'F5',
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      padding: 12,
+      gap: 6,
+    },
+    bottomHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    bottomTrip: { flex: 1, color: colors.text, fontWeight: '900', fontSize: 13 },
+    livePill: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
+    livePillOn: { backgroundColor: colors.green + '22' },
+    livePillOff: { backgroundColor: colors.cardBorder },
+    livePillText: { fontSize: 10, fontWeight: '900' },
+    bottomAddr: { color: colors.faint, fontSize: 11 },
+    compareRow: { flexDirection: 'row', gap: 6, marginTop: 4 },
+    compareBox: {
+      flex: 1,
+      backgroundColor: colors.input,
+      borderRadius: 10,
+      paddingVertical: 8,
+      paddingHorizontal: 8,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    compareLabel: { color: colors.faint, fontSize: 9, fontWeight: '700' },
+    compareValue: { fontSize: 12, fontWeight: '900', marginTop: 2 },
+    progressWrap: { gap: 4, marginTop: 4 },
+    progressTrack: { height: 8, borderRadius: 4, backgroundColor: colors.cardBorder, overflow: 'hidden' },
+    progressFill: { height: 8, borderRadius: 4, backgroundColor: colors.blue },
+    progressMeta: { color: colors.muted, fontSize: 11, fontWeight: '700' },
+    attr: { color: colors.faint, fontSize: 9, textAlign: 'right', marginTop: 2 },
   });
