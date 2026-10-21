@@ -424,20 +424,8 @@ export const DeliveriesScreen: React.FC = () => {
 
   const statFor = (key: 'day' | 'month' | 'year') => stats[key];
 
-  const COLS = { num: 46, trip: 200, client: 210, date: 150, driver: 190, fee: 130, status: 140, ctrl: 170 };
-
-  const renderTable = () => (
-    <View style={s.tableWrap}>
-      <View style={s.tableHeadRow}>
-        <Text style={[s.th, { width: COLS.num }]}>№</Text>
-        <Text style={[s.th, { width: COLS.trip }]}>Reys & Yuk Xati</Text>
-        <Text style={[s.th, { width: COLS.client }]}>Mijoz & Manzil</Text>
-        <Text style={[s.th, { width: COLS.date }]}>Sana & Vaqt</Text>
-        <Text style={[s.th, { width: COLS.driver }]}>Haydovchi & Avto</Text>
-        <Text style={[s.th, { width: COLS.fee, textAlign: 'center' }]}>{"Haq (so'm)"}</Text>
-        <Text style={[s.th, { width: COLS.status, textAlign: 'center' }]}>Holat (select)</Text>
-        <Text style={[s.th, { width: COLS.ctrl, textAlign: 'center' }]}>Amallar</Text>
-      </View>
+  const renderTripCards = () => (
+    <View style={s.cardList}>
       {filtered.map((trip, idx) => {
         const st = str(trip, 'status');
         const locked = st === 'yetkazildi';
@@ -445,69 +433,23 @@ export const DeliveriesScreen: React.FC = () => {
         const dirty = isRowDirty(trip);
         const busy = savingRow === String(idOf(trip));
         return (
-          <View
-            key={String(idOf(trip))}
-            style={[s.tableRow, isSel && s.tableRowActive]}
-          >
-            <Text style={[s.td, { width: COLS.num, color: colors.faint }]}>{idx + 1}</Text>
-
+          <View key={String(idOf(trip))} style={[s.tripCard, isSel && s.tripCardSel]}>
+            {/* Sarlavha: № + reys kodi + sana + holat select */}
             <TouchableOpacity
-              style={[s.td, { width: COLS.trip }]}
+              style={s.cardHead}
+              activeOpacity={0.75}
               onPress={() => {
                 setSelectedId(idOf(trip));
                 if (layoutMode === 'map') setLayoutMode('split');
               }}
             >
-              <Text style={[s.tdMono, { color: colors.gold }]}>{str(trip, 'trip_code') || '—'}</Text>
-              {str(trip, 'waybill_ttn_number') ? (
-                <Text style={s.tdSub}>Yuk xati: {str(trip, 'waybill_ttn_number')}</Text>
-              ) : null}
-              {str(trip, 'order_number') ? (
-                <Text style={s.tdSub}>Buyurtma: {str(trip, 'order_number')}</Text>
-              ) : null}
-            </TouchableOpacity>
-
-            <View style={[s.td, { width: COLS.client }]}>
-              <Text style={[s.tdBold, { color: colors.text }]}>{str(trip, 'client_name') || '—'}</Text>
-              <Text style={s.tdSub} numberOfLines={1}>📍 {str(trip, 'destination_address')}</Text>
-              {str(trip, 'cargo_summary') ? (
-                <Text style={s.tdSubItalic} numberOfLines={1}>{str(trip, 'cargo_summary')}</Text>
-              ) : null}
-            </View>
-
-            <View style={[s.td, { width: COLS.date }]}>
-              <Text style={s.tdMono}>{fmtDateTime(trip.created_at)}</Text>
-            </View>
-
-            <View style={[s.td, { width: COLS.driver }]}>
-              <Text style={[s.tdBold, { color: colors.text }]}>👤 {str(trip, 'driver_name') || '—'}</Text>
-              <Text style={s.tdSub}>🚚 {str(trip, 'vehicle_plate')} ({str(trip, 'vehicle_model')})</Text>
-              {str(trip, 'driver_phone') ? (
-                <Text style={s.tdSub}>📞 {str(trip, 'driver_phone')}</Text>
-              ) : null}
-            </View>
-
-            {/* Haq — kiriting / tahrirlang */}
-            <View style={[s.td, { width: COLS.fee }]}>
-              <TextInput
-                style={[s.cellInput, locked && s.cellInputLocked]}
-                value={draftFee(trip)}
-                onChangeText={(t) => setFeeDraft((p) => ({ ...p, [String(idOf(trip))]: t }))}
-                onBlur={() => {
-                  if (isRowDirty(trip)) saveRow(trip);
-                }}
-                placeholder="0"
-                placeholderTextColor={colors.faint}
-                keyboardType="numeric"
-                editable={!locked}
-              />
-              {num(trip.delivery_fee) > 0 && draftFee(trip) === rawFee(trip) ? (
-                <Text style={s.tdSub}>{fmtFee(trip.delivery_fee)}</Text>
-              ) : null}
-            </View>
-
-            {/* Holat — select tegi orqali o'zgartirish */}
-            <View style={[s.td, { width: COLS.status, alignItems: 'center' }]}>
+              <View style={s.idxBadge}>
+                <Text style={s.idxBadgeText}>{idx + 1}</Text>
+              </View>
+              <View style={s.cardHeadMain}>
+                <Text style={s.cardCode}>{str(trip, 'trip_code') || '—'}</Text>
+                <Text style={s.cardDate}>🕒 {fmtDateTime(trip.created_at)}</Text>
+              </View>
               <TouchableOpacity
                 style={[
                   s.selectBtn,
@@ -528,25 +470,79 @@ export const DeliveriesScreen: React.FC = () => {
                   {statusLabel(draftStatus(trip))} ▾
                 </Text>
               </TouchableOpacity>
-              {locked ? <Text style={s.locked}>🔒 Qotirilgan</Text> : null}
+            </TouchableOpacity>
+
+            {locked ? <Text style={s.lockedBanner}>🔒 Qotirilgan — o‘zgartirib bo‘lmaydi</Text> : null}
+
+            <View style={s.divider} />
+
+            {/* Haydovchi & Transport */}
+            <View style={s.block}>
+              <Text style={s.blockLabel}>Haydovchi & Transport</Text>
+              <Text style={s.blockValue}>👤 {str(trip, 'driver_name') || 'Haydovchi hali biriktirilmagan'}</Text>
+              <Text style={s.blockSub}>
+                🚚 {str(trip, 'vehicle_plate') || '—'}
+                {str(trip, 'vehicle_model') ? ` · ${str(trip, 'vehicle_model')}` : ''}
+              </Text>
+              {str(trip, 'driver_phone') ? <Text style={s.blockSub}>📞 {str(trip, 'driver_phone')}</Text> : null}
             </View>
 
-            {/* Amallar — har bir reys uchun Xarita + Saqlash */}
-            <View style={[s.td, { width: COLS.ctrl }]}>
-              <View style={s.ctrlRow}>
-                <TouchableOpacity style={s.mapBtn} onPress={() => setMapTrip(trip)}>
-                  <Text style={s.mapBtnText}>🗺️ Xarita</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[s.saveBtn, dirty && !locked ? s.saveBtnActive : s.saveBtnIdle, busy && s.saveBtnBusy]}
-                  disabled={!dirty || busy || locked}
-                  onPress={() => saveRow(trip)}
-                >
-                  <Text style={[s.saveBtnText, dirty && !locked && s.saveBtnTextActive]}>
-                    {busy ? '…' : '💾 Saqlash'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+            {/* Mijoz & Manzil */}
+            <View style={s.block}>
+              <Text style={s.blockLabel}>Mijoz & Manzil</Text>
+              <Text style={s.blockValue}>🏢 {str(trip, 'client_name') || '—'}</Text>
+              <Text style={s.blockSub}>📍 {str(trip, 'destination_address') || 'Manzil kiritilmagan'}</Text>
+              {str(trip, 'cargo_summary') ? <Text style={s.blockSub}>📦 {str(trip, 'cargo_summary')}</Text> : null}
+            </View>
+
+            {/* Hujjatlar */}
+            <View style={s.block}>
+              <Text style={s.blockLabel}>Hujjatlar</Text>
+              <Text style={s.blockSub}>📄 Yuk xati: {str(trip, 'waybill_ttn_number') || '—'}</Text>
+              <Text style={s.blockSub}>🛒 Buyurtma: {str(trip, 'order_number') || '—'}</Text>
+            </View>
+
+            <View style={s.divider} />
+
+            {/* Yetkazish haqi */}
+            <Text style={s.blockLabel}>{"Yetkazish haqi (so'm)"}</Text>
+            <View style={s.feeRow}>
+              <TextInput
+                style={[s.feeInput, locked && s.feeInputLocked]}
+                value={draftFee(trip)}
+                onChangeText={(t) => setFeeDraft((p) => ({ ...p, [String(idOf(trip))]: t }))}
+                onBlur={() => {
+                  if (isRowDirty(trip)) saveRow(trip);
+                }}
+                placeholder="0"
+                placeholderTextColor={colors.faint}
+                keyboardType="numeric"
+                editable={!locked}
+              />
+              <Text style={s.feeSuffix}>so‘m</Text>
+            </View>
+            {num(trip.delivery_fee) > 0 && draftFee(trip) === rawFee(trip) ? (
+              <Text style={s.feeHint}>Saqlangan: {fmtFee(trip.delivery_fee)}</Text>
+            ) : null}
+
+            {/* Amallar */}
+            <View style={s.actionRow}>
+              <TouchableOpacity style={s.mapBtn} onPress={() => setMapTrip(trip)}>
+                <Text style={s.mapBtnText}>🗺️ Xaritada ochish</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  s.saveBtn,
+                  dirty && !locked ? s.saveBtnActive : s.saveBtnIdle,
+                  busy && s.saveBtnBusy,
+                ]}
+                disabled={!dirty || busy || locked}
+                onPress={() => saveRow(trip)}
+              >
+                <Text style={[s.saveBtnText, dirty && !locked && s.saveBtnTextActive]}>
+                  {busy ? 'Saqlanmoqda…' : '💾 Saqlash'}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         );
@@ -849,9 +845,7 @@ export const DeliveriesScreen: React.FC = () => {
                   <Text style={s.tableHeaderTitle}>Yetkazib Berish Reyslari Jadvali</Text>
                   <Text style={s.tableHeaderCount}>Jami: {filtered.length} ta reys</Text>
                 </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  <View>{renderTable()}</View>
-                </ScrollView>
+                {renderTripCards()}
               </View>
             )}
             {(layoutMode === 'split' || layoutMode === 'map') && renderMap()}
@@ -1286,61 +1280,99 @@ const makeStyles = (colors: Palette) =>
     },
     tableHeaderTitle: { color: colors.text, fontWeight: '800', fontSize: 13 },
     tableHeaderCount: { color: colors.faint, fontSize: 11 },
-    tableWrap: { minWidth: 1248 },
-    tableHeadRow: { flexDirection: 'row', backgroundColor: colors.bg, borderBottomWidth: 1, borderBottomColor: colors.cardBorder, paddingVertical: 10 },
-    tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.cardBorder, paddingVertical: 10, paddingHorizontal: 6 },
-    tableRowActive: { backgroundColor: colors.gold + '14' },
     tableEmpty: { padding: 24, alignItems: 'center' },
     tableEmptyText: { color: colors.faint, fontSize: 12 },
-    th: { color: colors.muted, fontSize: 11, fontWeight: '800', paddingHorizontal: 6 },
-    td: { paddingHorizontal: 6, justifyContent: 'center' },
     tdMono: { color: colors.text, fontSize: 11, fontWeight: '700' },
     tdBold: { fontSize: 12, fontWeight: '700' },
     tdSub: { color: colors.faint, fontSize: 10, marginTop: 2 },
     tdSubItalic: { color: colors.faint, fontSize: 10, fontStyle: 'italic', marginTop: 2 },
-    badge: { borderWidth: 1, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
     badgeText: { fontSize: 11, fontWeight: '800' },
-    locked: { color: colors.faint, fontSize: 9, marginTop: 2 },
-    cellInput: {
+    cardList: { gap: 10 },
+    tripCard: {
       borderWidth: 1,
       borderColor: colors.cardBorder,
-      borderRadius: 8,
-      paddingHorizontal: 8,
-      paddingVertical: 6,
-      color: colors.text,
-      fontSize: 12,
+      borderRadius: 14,
+      backgroundColor: colors.card,
+      padding: 12,
+      gap: 8,
+    },
+    tripCardSel: { borderColor: colors.gold, backgroundColor: colors.gold + '0D' },
+    cardHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    cardHeadMain: { flex: 1 },
+    idxBadge: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: colors.gold + '26',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    idxBadgeText: { color: colors.gold, fontWeight: '900', fontSize: 13 },
+    cardCode: { color: colors.gold, fontWeight: '900', fontSize: 14 },
+    cardDate: { color: colors.faint, fontSize: 11, marginTop: 2 },
+    lockedBanner: {
+      color: colors.red,
+      fontSize: 11,
       fontWeight: '700',
+      backgroundColor: colors.red + '14',
+      borderRadius: 8,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+    },
+    divider: { height: 1, backgroundColor: colors.cardBorder },
+    block: { gap: 3 },
+    blockLabel: {
+      color: colors.muted,
+      fontSize: 10,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+    },
+    blockValue: { color: colors.text, fontSize: 14, fontWeight: '800', marginTop: 2 },
+    blockSub: { color: colors.faint, fontSize: 12, marginTop: 2 },
+    feeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    feeInput: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 11,
+      color: colors.text,
+      fontSize: 15,
+      fontWeight: '800',
       backgroundColor: colors.input,
       textAlign: 'right',
-      minWidth: 90,
     },
-    cellInputLocked: { opacity: 0.6, backgroundColor: colors.bg },
+    feeInputLocked: { opacity: 0.6, backgroundColor: colors.bg },
+    feeSuffix: { color: colors.faint, fontSize: 12, fontWeight: '700' },
+    feeHint: { color: colors.green, fontSize: 11, fontWeight: '700', textAlign: 'right' },
+    actionRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
     selectBtn: {
       borderWidth: 1.5,
       borderRadius: 20,
       paddingHorizontal: 12,
-      paddingVertical: 6,
-      minWidth: 108,
+      paddingVertical: 8,
+      minWidth: 112,
       alignItems: 'center',
       backgroundColor: colors.input,
     },
     selectBtnLocked: { opacity: 0.7 },
     selectBtnDirty: { borderColor: colors.gold, backgroundColor: colors.gold + '1A' },
-    selectBtnText: { fontSize: 11, fontWeight: '800' },
-    ctrlRow: { flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center' },
+    selectBtnText: { fontSize: 12, fontWeight: '800' },
     mapBtn: {
+      flex: 1,
       backgroundColor: colors.blue,
-      borderRadius: 10,
-      paddingHorizontal: 10,
-      paddingVertical: 9,
+      borderRadius: 12,
+      paddingVertical: 13,
       alignItems: 'center',
     },
-    mapBtnText: { color: '#fff', fontSize: 11, fontWeight: '800' },
-    saveBtn: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 9, alignItems: 'center' },
+    mapBtnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+    saveBtn: { flex: 1, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
     saveBtnActive: { backgroundColor: colors.gold },
     saveBtnIdle: { backgroundColor: colors.cardBorder },
     saveBtnBusy: { opacity: 0.7 },
-    saveBtnText: { color: colors.muted, fontSize: 11, fontWeight: '800' },
+    saveBtnText: { color: colors.muted, fontSize: 13, fontWeight: '800' },
     saveBtnTextActive: { color: '#000' },
     mapWrap: { padding: 0, overflow: 'hidden' },
     mapHead: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderBottomWidth: 1, borderBottomColor: colors.cardBorder },
