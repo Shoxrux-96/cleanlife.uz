@@ -1,9 +1,10 @@
 import React, {
   createContext,
+  useCallback,
   useContext,
-  useState,
   useEffect,
   useMemo,
+  useState,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api, Role } from './api';
@@ -15,12 +16,16 @@ export interface Session {
   position?: string;
 }
 
+export type AppRole = 'admin' | 'driver' | 'staff';
+
 interface AuthValue {
   session: Session | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
+
+const KEY = 'cleanlife_session';
 
 const AuthContext = createContext<AuthValue>({
   session: null,
@@ -29,7 +34,8 @@ const AuthContext = createContext<AuthValue>({
   logout: async () => {},
 });
 
-const KEY = 'cleanlife_session';
+const isDriverPos = (position?: string): boolean =>
+  /haydovchi|driver|voditel/i.test(position || '');
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -38,70 +44,77 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let done = false;
-    const finish = () => {
-      if (!done) {
-        done = true;
-        setLoading(false);
+    let cancelled = false;
+    const safetyTimer = setTimeout(() => {
+      if (!cancelled) setLoading(false);
+    }, 5000);
+
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(KEY);
+        if (!cancelled && raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && (parsed.role === 'admin' || parsed.role === 'staff')) {
+            setSession(parsed);
+          }
+        }
+      } catch {
+        /* ignore corrupted storage */
+      } finally {
+        clearTimeout(safetyTimer);
+        if (!cancelled) setLoading(false);
       }
+    })();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(safetyTimer);
     };
-    // Sug'urta: storage sekin/qotib qolsa ham login ekrani chiqsin
-    const timer = setTimeout(finish, 6000);
-    AsyncStorage.getItem(KEY)
-      .then((raw) => {
-        if (raw) setSession(JSON.parse(raw));
-      })
-      .catch(() => {})
-      .finally(() => {
-        clearTimeout(timer);
-        finish();
-      });
-    return () => clearTimeout(timer);
+  }, []);
+
+  const login = useCallback(async (username: string, password: string) => {
+    const res = await api.auth.login(username.trim(), password);
+    if (res.role !== 'admin' && res.role !== 'staff') {
+      throw new Error('Noma’lum rol.');
+    }
+    const s: Session = {
+      role: res.role,
+      name: res.name || username,
+      employeeId: res.employee_id,
+      position: res.position,
+    };
+    try {
+      await AsyncStorage.setItem(KEY, JSON.stringify(s));
+    } catch {
+      /* storage write failed — in-memory session still works */
+    }
+    setSession(s);
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await AsyncStorage.removeItem(KEY);
+    } catch {
+      /* ignore */
+    }
+    setSession(null);
   }, []);
 
   const value = useMemo<AuthValue>(
-    () => ({
-      session,
-      loading,
-      login: async (username: string, password: string) => {
-        const res = await api.auth.login(username.trim(), password);
-        if (res.role !== 'admin' && res.role !== 'staff') {
-          throw new Error('Noma’lum rol.');
-        }
-        const s: Session = {
-          role: res.role,
-          name: res.name || username,
-          employeeId: res.employee_id,
-          position: res.position,
-        };
-        await AsyncStorage.setItem(KEY, JSON.stringify(s));
-        setSession(s);
-      },
-      logout: async () => {
-        try {
-          await AsyncStorage.removeItem(KEY);
-        } catch {
-          /* ignore */
-        }
-        setSession(null);
-      },
-    }),
-    [session],
+    () => ({ session, loading, login, logout }),
+    [session, loading, login, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = () => useContext(AuthContext);
-
-/** Haydovchi ekanini lavozimdan aniqlash */
-export const isDriver = (position?: string) =>
-  /haydovchi|driver|voditel/i.test(position || '');
-
-export type AppRole = 'admin' | 'driver' | 'staff';
+export const useAuth = (): AuthValue => useContext(AuthContext);
 
 export const useAppRole = (): AppRole => {
   const { session } = useAuth();
-  if (!session || session.role === 'admin') return 'admin';
-  return isDriver(session.position) ? 'driver' : 'staff';
+  if (!session) return 'admin';
+  if (session.role === 'admin') return 'admin';
+  return isDriverPos(session.position) ? 'driver' : 'staff';
 };
+
+export const isDriver = isDriverPos;

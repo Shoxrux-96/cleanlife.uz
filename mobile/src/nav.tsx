@@ -1,129 +1,247 @@
 import React from 'react';
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { ActivityIndicator, Text, View } from 'react-native';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { ActivityIndicator, View } from 'react-native';
 import { useAuth, useAppRole } from './auth';
-import { colors } from './theme';
+import { useAppTheme } from './theme-context';
+
+// Umumiy
 import { LoginScreen } from './screens/LoginScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
-// Admin ekranlari
+
+// Admin
 import { HomeScreen } from './screens/admin/HomeScreen';
-import { OrdersScreen } from './screens/admin/OrdersScreen';
-import { StoreScreen } from './screens/admin/StoreScreen';
-import { FinanceScreen } from './screens/admin/FinanceScreen';
-import { MoreScreen } from './screens/admin/MoreScreen';
 import { ClientsScreen } from './screens/admin/ClientsScreen';
-import { DeliveriesScreen } from './screens/admin/DeliveriesScreen';
-import { EmployeesScreen } from './screens/admin/EmployeesScreen';
+import { OrdersScreen } from './screens/admin/OrdersScreen';
 import { WaybillsScreen } from './screens/admin/WaybillsScreen';
-import { PayrollScreen } from './screens/admin/PayrollScreen';
-import { BonusesScreen } from './screens/admin/BonusesScreen';
+import { DeliveriesScreen } from './screens/admin/DeliveriesScreen';
+import { FinanceScreen } from './screens/admin/FinanceScreen';
+import { ProductionHubScreen } from './screens/admin/ProductionHubScreen';
+import { StoreScreen } from './screens/admin/StoreScreen';
 import { WarehouseScreen } from './screens/admin/WarehouseScreen';
 import { CalculatorScreen } from './screens/admin/CalculatorScreen';
+import { HrHubScreen } from './screens/admin/HrHubScreen';
+import { EmployeesScreen } from './screens/admin/EmployeesScreen';
+import { PayrollScreen } from './screens/admin/PayrollScreen';
+import { BonusesScreen } from './screens/admin/BonusesScreen';
 import { AttendanceScreen } from './screens/admin/AttendanceScreen';
-import { SiteCmsScreen } from './screens/admin/SiteCmsScreen';
-import { SiteMessagesScreen } from './screens/admin/SiteMessagesScreen';
-import { SiteContactScreen } from './screens/admin/SiteContactScreen';
-import { SitePortfolioScreen } from './screens/admin/SitePortfolioScreen';
-import { SiteSliderScreen } from './screens/admin/SiteSliderScreen';
-// Haydovchi ekranlari
-import { DriverHomeScreen } from './screens/driver/DriverHomeScreen';
-import { DriverMapScreen } from './screens/driver/DriverMapScreen';
-import { DriverIncomeScreen } from './screens/driver/DriverIncomeScreen';
-// Xodim ekranlari
+
+// Xodim
 import { StaffHomeScreen } from './screens/staff/StaffHomeScreen';
 import { CheckinScreen } from './screens/staff/CheckinScreen';
 import { StatsScreen } from './screens/staff/StatsScreen';
 
+// Haydovchi
+import { DriverHomeScreen } from './screens/driver/DriverHomeScreen';
+import { DriverMapScreen } from './screens/driver/DriverMapScreen';
+import { DriverIncomeScreen } from './screens/driver/DriverIncomeScreen';
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const navTheme = {
-  ...DefaultTheme,
-  colors: { ...DefaultTheme.colors, background: colors.bg, card: colors.card, text: colors.text, border: colors.cardBorder, primary: colors.gold },
+const screenOpts = { headerShown: false } as const;
+
+const useStackHeaderOpts = () => {
+  const { colors } = useAppTheme();
+  return {
+    headerShown: true,
+    headerStyle: { backgroundColor: colors.card },
+    headerTintColor: colors.gold,
+    headerTitleStyle: {
+      color: colors.text,
+      fontWeight: '800' as const,
+      fontSize: 17,
+      letterSpacing: 0.3,
+    },
+    headerTitleAlign: 'left' as const,
+    headerTitleContainerStyle: { paddingLeft: 20 },
+    headerLeftContainerStyle: { paddingLeft: 10 },
+    headerBackTitle: '',
+    headerShadowVisible: true,
+    contentStyle: { backgroundColor: colors.bg },
+  };
 };
 
-const tabOpts = {
-  headerShown: false,
-  lazy: true,
-  tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.cardBorder },
-  tabBarActiveTintColor: colors.gold,
-  tabBarInactiveTintColor: colors.muted,
+const HomeStack: React.FC = () => {
+  const opts = useStackHeaderOpts();
+  return (
+    <Stack.Navigator screenOptions={opts}>
+      <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Asosiy sahifa' }} />
+      <Stack.Screen name="Clients" component={ClientsScreen} options={{ title: 'Mijozlar Bazasi' }} />
+      <Stack.Screen name="Orders" component={OrdersScreen} options={{ title: 'Buyurtmalar' }} />
+      <Stack.Screen name="Waybills" component={WaybillsScreen} options={{ title: 'Yuk Xatlari' }} />
+      <Stack.Screen name="Deliveries" component={DeliveriesScreen} options={{ title: 'Yetkazib berish' }} />
+      <Stack.Screen name="Finance" component={FinanceScreen} options={{ title: 'Moliya' }} />
+    </Stack.Navigator>
+  );
 };
 
-const AdminTabs: React.FC = () => (
-  <Tab.Navigator screenOptions={tabOpts}>
-    <Tab.Screen name="Asosiy" component={HomeScreen} options={{ tabBarLabel: 'Asosiy' }} />
-    <Tab.Screen name="Buyurtmalar" component={OrdersScreen} options={{ tabBarLabel: 'Buyurtma' }} />
-    <Tab.Screen name="Ombor" component={StoreScreen} options={{ tabBarLabel: 'Ombor' }} />
-    <Tab.Screen name="Moliya" component={FinanceScreen} options={{ tabBarLabel: 'Moliya' }} />
-    <Tab.Screen name="Boshqa" component={MoreScreen} options={{ tabBarLabel: 'Boshqa' }} />
-  </Tab.Navigator>
+const ProfileStack: React.FC = () => {
+  const opts = useStackHeaderOpts();
+  return (
+    <Stack.Navigator screenOptions={opts}>
+      <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profil' }} />
+    </Stack.Navigator>
+  );
+};
+
+const ProductionStack: React.FC = () => {
+  const opts = useStackHeaderOpts();
+  return (
+    <Stack.Navigator screenOptions={opts}>
+      <Stack.Screen name="ProductionHub" component={ProductionHubScreen} options={{ title: 'Ishlab chiqarish' }} />
+      <Stack.Screen name="Store" component={StoreScreen} options={{ title: 'Mahsulot va materiallar' }} />
+      <Stack.Screen name="Warehouse" component={WarehouseScreen} options={{ title: 'Omborxona' }} />
+      <Stack.Screen name="Calculator" component={CalculatorScreen} options={{ title: 'Kalkulyator' }} />
+    </Stack.Navigator>
+  );
+};
+
+const HrStack: React.FC = () => {
+  const opts = useStackHeaderOpts();
+  return (
+    <Stack.Navigator screenOptions={opts}>
+      <Stack.Screen name="HrHub" component={HrHubScreen} options={{ title: "HR bo'limi" }} />
+      <Stack.Screen name="Employees" component={EmployeesScreen} options={{ title: 'Xodimlar' }} />
+      <Stack.Screen name="Payroll" component={PayrollScreen} options={{ title: 'Ish haqi' }} />
+      <Stack.Screen name="Bonuses" component={BonusesScreen} options={{ title: 'Bonuslar' }} />
+      <Stack.Screen name="Attendance" component={AttendanceScreen} options={{ title: 'Davomat' }} />
+    </Stack.Navigator>
+  );
+};
+
+const TabIcon = (glyph: string, gold: string) => ({ focused }: { focused: boolean }) => (
+  <View
+    style={{
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: focused ? gold + '22' : 'transparent',
+      borderWidth: focused ? 1 : 0,
+      borderColor: gold + '55',
+    }}
+  >
+    <Text style={{ fontSize: 18 }}>{glyph}</Text>
+  </View>
 );
 
-const DriverTabs: React.FC = () => (
-  <Tab.Navigator screenOptions={tabOpts}>
-    <Tab.Screen name="DriverHome" component={DriverHomeScreen} options={{ tabBarLabel: 'Bosh sahifa' }} />
-    <Tab.Screen name="DriverMap" component={DriverMapScreen} options={{ tabBarLabel: 'Xarita' }} />
-    <Tab.Screen name="DriverIncome" component={DriverIncomeScreen} options={{ tabBarLabel: 'Daromad' }} />
-    <Tab.Screen name="Profil" component={ProfileScreen} options={{ tabBarLabel: 'Profil' }} />
-  </Tab.Navigator>
-);
+const AdminTabs: React.FC = () => {
+  const { colors } = useAppTheme();
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: colors.card,
+          borderTopColor: colors.cardBorder,
+          height: 68,
+          paddingBottom: 10,
+          paddingTop: 6,
+        },
+        tabBarActiveTintColor: colors.gold,
+        tabBarInactiveTintColor: colors.muted,
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
+      }}
+    >
+      <Tab.Screen
+        name="HomeTab"
+        component={HomeStack}
+        options={{ tabBarLabel: 'Asosiy', tabBarIcon: TabIcon('🏠', colors.gold) }}
+      />
+      <Tab.Screen
+        name="ProductionTab"
+        component={ProductionStack}
+        options={{ tabBarLabel: 'Ishlab chiq.', tabBarIcon: TabIcon('🏭', colors.gold) }}
+      />
+      <Tab.Screen
+        name="HrTab"
+        component={HrStack}
+        options={{ tabBarLabel: "HR bo'limi", tabBarIcon: TabIcon('👥', colors.gold) }}
+      />
+      <Tab.Screen
+        name="ProfileTab"
+        component={ProfileStack}
+        options={{ tabBarLabel: 'Profil', tabBarIcon: TabIcon('👤', colors.gold) }}
+      />
+    </Tab.Navigator>
+  );
+};
 
-const StaffTabs: React.FC = () => (
-  <Tab.Navigator screenOptions={tabOpts}>
-    <Tab.Screen name="StaffHome" component={StaffHomeScreen} options={{ tabBarLabel: 'Bosh sahifa' }} />
-    <Tab.Screen name="FaceID" component={CheckinScreen} options={{ tabBarLabel: 'Face ID' }} />
-    <Tab.Screen name="Hisobot" component={StatsScreen} options={{ tabBarLabel: 'Hisobot' }} />
-    <Tab.Screen name="Profil" component={ProfileScreen} options={{ tabBarLabel: 'Profil' }} />
-  </Tab.Navigator>
-);
+const StaffStack: React.FC = () => {
+  const opts = useStackHeaderOpts();
+  return (
+    <Stack.Navigator initialRouteName="StaffHome" screenOptions={opts}>
+      <Stack.Screen name="StaffHome" component={StaffHomeScreen} options={{ title: 'Bosh sahifa' }} />
+      <Stack.Screen name="Checkin" component={CheckinScreen} options={{ title: 'Face ID davomat' }} />
+      <Stack.Screen name="Stats" component={StatsScreen} options={{ title: 'Hisobot' }} />
+      <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profil' }} />
+    </Stack.Navigator>
+  );
+};
 
-const Main: React.FC = () => {
-  const role = useAppRole();
-  if (role === 'admin') return <AdminTabs />;
-  if (role === 'driver') return <DriverTabs />;
-  return <StaffTabs />;
+const DriverStack: React.FC = () => {
+  const opts = useStackHeaderOpts();
+  return (
+    <Stack.Navigator initialRouteName="DriverHome" screenOptions={opts}>
+      <Stack.Screen name="DriverHome" component={DriverHomeScreen} options={{ title: 'Bosh sahifa' }} />
+      <Stack.Screen name="DriverMap" component={DriverMapScreen} options={{ title: 'Xarita' }} />
+      <Stack.Screen name="DriverIncome" component={DriverIncomeScreen} options={{ title: 'Daromad' }} />
+      <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profil' }} />
+    </Stack.Navigator>
+  );
 };
 
 export const RootNavigator: React.FC = () => {
   const { session, loading } = useAuth();
+  const role = useAppRole();
+  const { theme, colors } = useAppTheme();
+
+  const navTheme = {
+    ...(theme === 'light' ? DefaultTheme : DarkTheme),
+    colors: {
+      ...(theme === 'light' ? DefaultTheme.colors : DarkTheme.colors),
+      background: colors.bg,
+      card: colors.card,
+      text: colors.text,
+      border: colors.cardBorder,
+      primary: colors.gold,
+    },
+  };
+
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.bg,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
         <ActivityIndicator size="large" color={colors.gold} />
       </View>
     );
   }
+
+  if (!session) {
+    return (
+      <NavigationContainer theme={navTheme}>
+        <Stack.Navigator screenOptions={screenOpts}>
+          <Stack.Screen name="Login" component={LoginScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    );
+  }
+
+  const Target =
+    role === 'admin' ? AdminTabs : role === 'driver' ? DriverStack : StaffStack;
+
   return (
     <NavigationContainer theme={navTheme}>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-{!session ? (
-            <Stack.Screen name="Login" component={LoginScreen} />
-        ) : session.role === 'admin' ? (
-          <>
-            <Stack.Screen name="AdminMain" component={AdminTabs} />
-            <Stack.Screen name="Clients" component={ClientsScreen} />
-            <Stack.Screen name="Deliveries" component={DeliveriesScreen} />
-            <Stack.Screen name="Employees" component={EmployeesScreen} />
-            <Stack.Screen name="Waybills" component={WaybillsScreen} />
-            <Stack.Screen name="Payroll" component={PayrollScreen} />
-            <Stack.Screen name="Bonuses" component={BonusesScreen} />
-            <Stack.Screen name="Warehouse" component={WarehouseScreen} />
-            <Stack.Screen name="Calculator" component={CalculatorScreen} />
-            <Stack.Screen name="Attendance" component={AttendanceScreen} />
-            <Stack.Screen name="SiteCms" component={SiteCmsScreen} />
-            <Stack.Screen name="SiteMessages" component={SiteMessagesScreen} />
-            <Stack.Screen name="SiteContact" component={SiteContactScreen} />
-            <Stack.Screen name="SitePortfolio" component={SitePortfolioScreen} />
-            <Stack.Screen name="SiteSlider" component={SiteSliderScreen} />
-            <Stack.Screen name="Profile" component={ProfileScreen} />
-          </>
-        ) : (
-          <Stack.Screen name="StaffMain" component={Main} />
-        )}
-      </Stack.Navigator>
+      <Target />
     </NavigationContainer>
   );
 };
