@@ -1,0 +1,50 @@
+# ============================================================
+# Host-level nginx + Let's Encrypt (certbot).
+# Place at /etc/nginx/sites-available/cleanlife.uz and symlink to
+# /etc/nginx/sites-enabled/. The Docker frontend container listens on
+# 127.0.0.1:8080 (see docker-compose.yml).
+#
+# 1) Install nginx + certbot:
+#      sudo apt install nginx certbot python3-certbot-nginx
+# 2) First deploy the HTTP block below (without the SSL part),
+#    then run:
+#      sudo certbot --nginx -d cleanlife.uz -d www.cleanlife.uz
+#    Certbot will inject the TLS lines automatically.
+# ============================================================
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name cleanlife.uz www.cleanlife.uz;
+
+    # Let's Encrypt challenge
+    location /.well-known/acme-challenge/ { root /var/www/html; }
+
+    location / { return 301 https://$host$request_uri; }
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name cleanlife.uz www.cleanlife.uz;
+
+    # Certbot will fill these in:
+    # ssl_certificate     /etc/letsencrypt/live/cleanlife.uz/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/cleanlife.uz/privkey.pem;
+    # include /etc/letsencrypt/options-ssl-nginx.conf;
+    # ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    client_max_body_size 25m;
+
+    # Pass real client info to the container so Django sees HTTPS
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_read_timeout 60s;
+    }
+}

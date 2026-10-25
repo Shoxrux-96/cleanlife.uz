@@ -19,7 +19,9 @@ node_modules/
 /metro.config.js
 
 # Environment variables
-/.env*
+/.env
+/.env.local
+/.env.*.local
 /secret*
 
 # Dependencies
@@ -54,3 +56,5 @@ backend/db.sqlite3
 mobile/src.bak/
 /app.json
 /CL.jpg
+
+.env

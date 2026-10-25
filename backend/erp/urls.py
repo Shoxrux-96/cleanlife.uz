@@ -1,5 +1,10 @@
+from django.http import JsonResponse
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
+
+
+def health(_request):
+    return JsonResponse({'status': 'ok'})
 
 from .views import (
     AttendanceRecordViewSet, AttendanceSettingsViewSet, AuthViewSet,
@@ -33,5 +38,6 @@ router.register(r'salary-payments', SalaryPaymentViewSet, basename='salary-payme
 router.register(r'stats/overview', DashboardOverviewViewSet, basename='stats-overview')
 
 urlpatterns = [
+    path('health/', health),
     path('', include(router.urls)),
 ]
