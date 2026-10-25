@@ -49,3 +49,8 @@ __pycache__/
 *.pyo
 backend/venv/
 backend/db.sqlite3
+
+# Backup / scratch
+mobile/src.bak/
+/app.json
+/CL.jpg

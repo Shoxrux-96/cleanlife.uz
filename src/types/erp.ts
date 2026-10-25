@@ -9,6 +9,7 @@ export interface FinancialTransaction {
   amount: number;
   paymentMethod: PaymentMethod;
   date: string;
+  createdAt?: string;
   description: string;
   relatedClient?: string;
   relatedOrderId?: string;

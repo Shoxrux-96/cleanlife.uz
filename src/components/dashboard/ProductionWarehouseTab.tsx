@@ -3,16 +3,22 @@ import {
   Building2, AlertTriangle, CheckCircle2, Search, Filter, 
   ArrowDownLeft, ArrowUpRight, MapPin, Layers, Package, RefreshCw, Plus,
   Image as ImageIcon, Upload, Link as LinkIcon, X, Calendar, Clock, Trash2, Check, Sparkles,
-  FileSpreadsheet
+  FileSpreadsheet, Edit
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { RawMaterial, ErpProduct, BomItem, CompanyInfo } from '../../types/erp';
+import { RawMaterial, ErpProduct, BomItem, CompanyInfo, FinancialTransaction } from '../../types/erp';
+import {
+  PRODUCTION_CATEGORY,
+  formatProductionDescription,
+  parseProductionDescription,
+} from '../../lib/production';
 import { TablePagination } from './TablePagination';
 import { MaterialReceiptModal, MaterialPurchasePayload } from './MaterialReceiptModal';
 import { useLanguage } from '../../context/LanguageContext';
 
 export interface DailyProductionRecord {
   id: string;
+  txId: string;
   productId: string;
   productName: string;
   productSku: string;
@@ -25,90 +31,19 @@ export interface DailyProductionRecord {
   note?: string;             // Smena / Izoh
 }
 
-const INITIAL_PRODUCTION_RECORDS: DailyProductionRecord[] = [
-  {
-    id: 'rec-1',
-    productId: 'prod-2',
-    productName: 'Restoran Kanvas Oshpaz Fartugi',
-    productSku: 'HRC-APRON-002',
-    imageUrl: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=400&auto=format&fit=crop&q=80',
-    quantity: 40,
-    remainingStock: 140,
-    dateTime: '2026-10-04 11:30',
-    sellingPrice: 115000,
-    totalAmount: 4600000,
-    note: 'Ertalabki tikuv smenasi'
-  },
-  {
-    id: 'rec-2',
-    productId: 'prod-3',
-    productName: 'Korporativ Piqué Polo Futbolka',
-    productSku: 'HRC-POLO-003',
-    imageUrl: 'https://images.unsplash.com/photo-1581655353564-df123a1eb820?w=400&auto=format&fit=crop&q=80',
-    quantity: 80,
-    remainingStock: 320,
-    dateTime: '2026-10-04 09:15',
-    sellingPrice: 85000,
-    totalAmount: 6800000,
-    note: 'Kashtachilik sexi partiyasi'
-  },
-  {
-    id: 'rec-3',
-    productId: 'prod-1',
-    productName: 'Xushbo‘y Nam Salfetka (Sachet)',
-    productSku: 'HRC-WIPE-001',
-    imageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400&auto=format&fit=crop&q=80',
-    quantity: 3500,
-    remainingStock: 18500,
-    dateTime: '2026-10-03 16:45',
-    sellingPrice: 750,
-    totalAmount: 2625000,
-    note: 'Avtomat qadoqlash liniyasi'
-  },
-  {
-    id: 'rec-4',
-    productId: 'prod-5',
-    productName: 'Eko Kraft Qadoqlash Paketi',
-    productSku: 'HRC-BAG-005',
-    imageUrl: 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=400&auto=format&fit=crop&q=80',
-    quantity: 1200,
-    remainingStock: 6200,
-    dateTime: '2026-10-02 14:20',
-    sellingPrice: 3200,
-    totalAmount: 3840000,
-    note: 'Ipak bosma sexi'
-  },
-  {
-    id: 'rec-5',
-    productId: 'prod-4',
-    productName: 'Premium Tish Kovlagich Qutisi (Stol usti)',
-    productSku: 'HRC-BOX-004',
-    imageUrl: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=400&auto=format&fit=crop&q=80',
-    quantity: 500,
-    remainingStock: 3400,
-    dateTime: '2026-10-01 10:00',
-    sellingPrice: 2800,
-    totalAmount: 1400000,
-    note: 'Oktyabr oylik 1-partiya'
-  },
-  {
-    id: 'rec-6',
-    productId: 'prod-6',
-    productName: 'Milliy Baxmal Do‘ppi (Choyxona & Restoran)',
-    productSku: 'HRC-CAP-006',
-    imageUrl: 'https://images.unsplash.com/photo-1576871337622-98d48d1cf531?w=400&auto=format&fit=crop&q=80',
-    quantity: 25,
-    remainingStock: 85,
-    dateTime: '2026-09-30 17:00',
-    sellingPrice: 58000,
-    totalAmount: 1450000,
-    note: 'Sentyabr oylik yakuniy partiya'
-  }
-];
-
 interface ProductionWarehouseTabProps {
   materials: RawMaterial[];
   products: ErpProduct[];
+  transactions?: FinancialTransaction[];
+  onRecordReceipt?: (payload: {
+    productName: string;
+    sku: string;
+    quantity: number;
+    unitPrice: number;
+    amount: number;
+    date: string;
+  }) => void;
+  onDeleteReceipt?: (txId: string, productId: string, quantity: number) => void;
   onUpdateMaterial: (material: RawMaterial) => void;
   onUpdateProduct: (product: ErpProduct) => void;
   onAddProduct?: (product: Omit<ErpProduct, 'id'>) => void;
@@ -121,6 +56,9 @@ interface ProductionWarehouseTabProps {
 export const ProductionWarehouseTab: React.FC<ProductionWarehouseTabProps> = ({
   materials,
   products,
+  transactions,
+  onRecordReceipt,
+  onDeleteReceipt,
   onUpdateMaterial,
   onUpdateProduct,
   onAddProduct,
@@ -138,8 +76,36 @@ export const ProductionWarehouseTab: React.FC<ProductionWarehouseTabProps> = ({
   const [periodFilter, setPeriodFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
   const [customDate, setCustomDate] = useState<string>('');
 
-  // Daily Production Records
-  const [productionRecords, setProductionRecords] = useState<DailyProductionRecord[]>(INITIAL_PRODUCTION_RECORDS);
+  // Daily Production Records — API dan (FinancialTransaction, category = 'Mahsulot ishlab chiqarish')
+  const productionRecords: DailyProductionRecord[] = useMemo(() => {
+    const list = (transactions ?? [])
+      .filter(tx => tx.category === PRODUCTION_CATEGORY)
+      .map(tx => {
+        const info = parseProductionDescription(tx.description);
+        if (!info) return null;
+        const product =
+          products.find(p => p.sku === info.sku) ??
+          products.find(p => p.name === info.name) ??
+          null;
+        const time = (tx.createdAt ?? '').slice(11, 16);
+        return {
+          id: tx.id,
+          txId: tx.id,
+          productId: product?.id ?? '',
+          productName: product?.name ?? info.name,
+          productSku: info.sku || product?.sku || '',
+          imageUrl: product?.imageUrl,
+          quantity: info.quantity,
+          remainingStock: product?.stockCount ?? 0,
+          dateTime: `${tx.date} ${time}`.trim(),
+          sellingPrice: info.unitPrice,
+          totalAmount: tx.amount,
+          note: info.note,
+        } as DailyProductionRecord;
+      })
+      .filter(Boolean) as DailyProductionRecord[];
+    return list.sort((a, b) => b.dateTime.localeCompare(a.dateTime));
+  }, [transactions, products]);
 
   // Modal State for Products
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
@@ -168,6 +134,19 @@ export const ProductionWarehouseTab: React.FC<ProductionWarehouseTabProps> = ({
     const minute = parts.find(p => p.type === 'minute')?.value;
     return `${year}-${month}-${day} ${hour}:${minute}`;
   };
+
+  // Bugungi oy / hafta chegarasi (O'zbekiston vaqti)
+  const getUzbekistanDate = (daysAgo = 0) => {
+    const now = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Tashkent',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    return formatter.format(now);
+  };
+  const getUzbekistanMonth = () => getUzbekistanDate().slice(0, 7);
 
   // Form for receiving daily/monthly production to warehouse
   const [receiptForm, setReceiptForm] = useState({
@@ -213,21 +192,15 @@ export const ProductionWarehouseTab: React.FC<ProductionWarehouseTabProps> = ({
     const newStock = (selectedProduct.stockCount || 0) + qty;
     const currentUzbekistanTime = getUzbekistanDateTime();
 
-    const newRecord: DailyProductionRecord = {
-      id: `rec-${Date.now()}`,
-      productId: selectedProduct.id,
+    // Moliyada chiqim (ishlab chiqarish tannarxi) + ombordagi zaxira yangilanadi
+    onRecordReceipt?.({
       productName: selectedProduct.name,
-      productSku: selectedProduct.sku,
-      imageUrl: selectedProduct.imageUrl,
+      sku: selectedProduct.sku,
       quantity: qty,
-      remainingStock: newStock,
-      dateTime: currentUzbekistanTime,
-      sellingPrice: price,
-      totalAmount: total,
-      note: ''
-    };
-
-    setProductionRecords([newRecord, ...productionRecords]);
+      unitPrice: price,
+      amount: total,
+      date: currentUzbekistanTime.split(' ')[0]
+    });
 
     // Update product stock count in ERP store
     onUpdateProduct({
@@ -238,8 +211,8 @@ export const ProductionWarehouseTab: React.FC<ProductionWarehouseTabProps> = ({
     setIsAddProductModalOpen(false);
   };
 
-  const handleDeleteRecord = (id: string) => {
-    setProductionRecords(prev => prev.filter(r => r.id !== id));
+  const handleDeleteRecord = (rec: DailyProductionRecord) => {
+    onDeleteReceipt?.(rec.txId, rec.productId, rec.quantity);
   };
 
   // Materials filter
@@ -271,8 +244,9 @@ export const ProductionWarehouseTab: React.FC<ProductionWarehouseTabProps> = ({
       return rec.dateTime.startsWith(customDate);
     }
 
-    const todayStr = '2026-10-04';
-    const thisMonthStr = '2026-10';
+    const todayStr = getUzbekistanDate();
+    const thisMonthStr = getUzbekistanMonth();
+    const weekAgoStr = getUzbekistanDate(6);
 
     if (periodFilter === 'today') {
       return rec.dateTime.startsWith(todayStr);
@@ -281,18 +255,18 @@ export const ProductionWarehouseTab: React.FC<ProductionWarehouseTabProps> = ({
       return rec.dateTime.startsWith(thisMonthStr);
     }
     if (periodFilter === 'week') {
-      return rec.dateTime >= '2026-09-27';
+      return rec.dateTime >= weekAgoStr;
     }
 
     return true;
   });
 
   // Summary statistics for products
-  const todayRecords = productionRecords.filter(r => r.dateTime.startsWith('2026-10-04'));
+  const todayRecords = productionRecords.filter(r => r.dateTime.startsWith(getUzbekistanDate()));
   const todayTotalQty = todayRecords.reduce((acc, r) => acc + r.quantity, 0);
   const todayTotalAmount = todayRecords.reduce((acc, r) => acc + r.totalAmount, 0);
 
-  const monthRecords = productionRecords.filter(r => r.dateTime.startsWith('2026-10'));
+  const monthRecords = productionRecords.filter(r => r.dateTime.startsWith(getUzbekistanMonth()));
   const monthTotalQty = monthRecords.reduce((acc, r) => acc + r.quantity, 0);
   const monthTotalAmount = monthRecords.reduce((acc, r) => acc + r.totalAmount, 0);
 
@@ -861,7 +835,7 @@ export const ProductionWarehouseTab: React.FC<ProductionWarehouseTabProps> = ({
                       {/* 8. Amallar */}
                       <td className="py-3.5 px-4 text-right whitespace-nowrap">
                         <button
-                          onClick={() => handleDeleteRecord(rec.id)}
+                          onClick={() => handleDeleteRecord(rec)}
                           className="p-1.5 rounded-lg hover:bg-rose-500/10 text-stone-400 hover:text-rose-500 transition-colors cursor-pointer"
                           title={t.dash.warehouse.table.deleteTitle}
                         >
@@ -896,6 +870,7 @@ export const ProductionWarehouseTab: React.FC<ProductionWarehouseTabProps> = ({
                   <th className="py-3 px-4 font-bold text-stone-900 dark:text-white uppercase tracking-wider">{t.dash.warehouse.matTable.receivedAt}</th>
                   <th className="py-3 px-4 font-bold text-stone-900 dark:text-white uppercase tracking-wider">{t.dash.warehouse.matTable.unitPrice}</th>
                   <th className="py-3 px-4 font-bold text-stone-900 dark:text-white uppercase tracking-wider">{t.dash.warehouse.matTable.totalValue}</th>
+                  <th className="py-3 px-4 font-bold text-stone-900 dark:text-white uppercase tracking-wider text-right">{t.dash.warehouse.table.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100 dark:divide-[#241E18] text-[#1A1715] dark:text-[#FAF7F2]">
@@ -948,6 +923,23 @@ export const ProductionWarehouseTab: React.FC<ProductionWarehouseTabProps> = ({
                       {/* 7. Jami Qiymat */}
                       <td className="py-3.5 px-4 font-mono text-sm font-black text-amber-700 dark:text-[#E6C774]">
                         {formatUzbekSum(totalValue)}
+                      </td>
+
+                      {/* 8. Amallar — zaxirani yangilash */}
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                        <button
+                          onClick={() => setAdjustItem({
+                            type: 'material',
+                            id: mat.id,
+                            name: cleanMaterialName(mat.name),
+                            currentQuantity: mat.quantity,
+                            unit: mat.unit
+                          })}
+                          className="p-1.5 rounded-lg hover:bg-stone-100 dark:hover:bg-[#251E18] text-stone-400 hover:text-amber-500 transition-colors cursor-pointer"
+                          title={t.dash.warehouse.adjust.title}
+                        >
+                          <Edit size={16} />
+                        </button>
                       </td>
                     </tr>
                   );

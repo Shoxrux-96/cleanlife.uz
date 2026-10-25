@@ -7,6 +7,10 @@ SECRET_KEY = 'django-insecure-brendor-erp-dev-key-change-in-production'
 DEBUG = True
 ALLOWED_HOSTS = ['*']
 
+# Upload limits — avatar (base64 DataURL) katta bo'lishi mumkin
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024  # 20 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024  # 20 MB
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',

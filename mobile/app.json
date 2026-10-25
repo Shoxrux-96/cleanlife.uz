@@ -7,11 +7,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#121110"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "uz.cleanlife.erp",
@@ -40,6 +35,14 @@
       "predictiveBackGestureEnabled": false
     },
     "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#121110"
+        }
+      ],
       [
         "expo-location",
         {

@@ -133,6 +133,22 @@ class EmployeeSerializer(serializers.ModelSerializer):
             return hash_password(value)
         return value
 
+    # Status qiymatlarining eski aliaslarini qabul qilish ('faol' → 'active' va h.k.)
+    STATUS_ALIASES = {
+        'faol': 'active',
+        "ta'tilda": 'on_leave',
+        'tatilda': 'on_leave',
+        'sinov': 'probation',
+        'sinov davri': 'probation',
+    }
+
+    def to_internal_value(self, data):
+        if isinstance(data, dict) and 'status' in data and isinstance(data['status'], str):
+            key = data['status'].strip().lower()
+            if key in self.STATUS_ALIASES:
+                data = {**data, 'status': self.STATUS_ALIASES[key]}
+        return super().to_internal_value(data)
+
 
 class PayrollRecordSerializer(serializers.ModelSerializer):
     class Meta:
@@ -212,7 +228,8 @@ class DeliveryTripSerializer(serializers.ModelSerializer):
             'vehicle_plate', 'destination_address', 'client_name', 'order_number',
             'cargo_summary', 'status', 'departure_time', 'estimated_arrival',
             'completed_time', 'lat', 'lng', 'waybill_id', 'waybill_ttn_number',
-            'delivery_fee', 'created_at', 'updated_by',
+            'delivery_fee', 'traveled_distance_m', 'traveled_duration_s',
+            'started_at', 'finished_at', 'created_at', 'updated_by',
         ]
 
     waybill_id = serializers.PrimaryKeyRelatedField(

@@ -5,12 +5,16 @@ import type {
 } from '../types/erp';
 import type { ContactMessage } from '../types';
 
+// Backend bazasini aniqlash:
+//  1) VITE_API_BASE env berilgan bo'lsa — shu.
+//  2) localhost / 127.0.0.1 da ochilgan bo'lsa — http://localhost:8000/api.
+//  3) Aks holda — ochilgan hostning 8000-portidagi backend (bir xil LAN).
 const API_BASE =
   import.meta.env.VITE_API_BASE ||
   (window.location.hostname === 'localhost' ||
   window.location.hostname === '127.0.0.1'
     ? 'http://localhost:8000/api'
-    : 'http://13.140.154.35:8000/api');
+    : `${window.location.protocol}//${window.location.hostname}:8000/api`);
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -49,6 +53,7 @@ const mapTx = (t: Record<string, unknown>): FinancialTransaction => ({
   amount: Number(t.amount) || 0,
   paymentMethod: (t.payment_method as FinancialTransaction['paymentMethod']) || 'naqd',
   date: (t.date as string) || '',
+  createdAt: (t.created_at as string) || undefined,
   description: (t.description as string) || '',
   relatedClient: (t.related_client as string) || undefined,
   relatedOrderId: t.related_order_id ? String(t.related_order_id) : undefined,

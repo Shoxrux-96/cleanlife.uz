@@ -5,7 +5,14 @@ import { Card, Muted, Screen } from '../../components';
 import { colors, Palette } from '../../theme';
 import { useAppTheme } from '../../theme-context';
 
-type Item = { route: string; title: string; sub: string; icon: string; tint: string };
+type Item = {
+  route: string;
+  title: string;
+  sub: string;
+  icon: string;
+  tint: string;
+  params?: Record<string, unknown>;
+};
 
 const MENU: Item[] = [
   {
@@ -30,11 +37,12 @@ const MENU: Item[] = [
     tint: '#F59E0B',
   },
   {
-    route: 'Attendance',
+    route: 'Payroll',
     title: 'Davomat',
-    sub: 'Oylik nazorat',
-    icon: '📅',
+    sub: 'Kunlik nazorat',
+    icon: '📋',
     tint: '#22D3EE',
+    params: { tab: 'davomat', single: true },
   },
 ];
 
@@ -54,10 +62,10 @@ export const HrHubScreen: React.FC = () => {
       <View style={s.grid}>
         {MENU.map((m) => (
           <TouchableOpacity
-            key={m.route}
+            key={`${m.route}:${m.title}`}
             activeOpacity={0.85}
             style={s.card}
-            onPress={() => navigation.navigate(m.route)}
+            onPress={() => navigation.navigate(m.route, m.params)}
           >
             <View style={[s.iconWrap, { backgroundColor: m.tint + '22', borderColor: m.tint + '55' }]}>
               <Text style={s.icon}>{m.icon}</Text>

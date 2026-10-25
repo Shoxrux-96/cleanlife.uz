@@ -2,18 +2,25 @@ import React, { useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Card, Muted, Screen } from '../../components';
-import { colors, Palette } from '../../theme';
+import { Palette } from '../../theme';
 import { useAppTheme } from '../../theme-context';
 
 type Item = { route: string; title: string; sub: string; icon: string; tint: string };
 
 const MENU: Item[] = [
   {
-    route: 'Store',
-    title: 'Mahsulot va materiallar',
-    sub: 'Tayyor mahsulot va xom-ashyo',
-    icon: '📦',
-    tint: '#F59E0B',
+    route: 'MaterialIntake',
+    title: 'Materiallar',
+    sub: 'Xom-ashyo kirim va zaxira',
+    icon: '📥',
+    tint: '#8B5CF6',
+  },
+  {
+    route: 'ReadyProducts',
+    title: 'Tayyor Mahsulotlar',
+    sub: 'Katalog va tannarx hisobi',
+    icon: '🏷️',
+    tint: '#A855F7',
   },
   {
     route: 'Warehouse',

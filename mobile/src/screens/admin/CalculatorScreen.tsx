@@ -17,7 +17,8 @@ import {
   Empty,
   Loader,
 } from '../../components';
-import { colors, fmtMoney } from '../../theme';
+import { colors, fmtMoney, Palette } from '../../theme';
+import { useAppTheme } from '../../theme-context';
 
 type Rec = Record<string, unknown>;
 type Mode = 'product' | 'manual';
@@ -41,7 +42,10 @@ const toNum = (v: string): number => {
   return Number.isNaN(n) ? 0 : n;
 };
 
-export const CalculatorScreen: React.FC = () => {
+export const CalculatorScreen: React.FC<{ route?: { params?: { productId?: string | number } } }> = ({ route }) => {
+  const { colors } = useAppTheme();
+  const s = useMemo(() => makeStyles(colors), [colors]);
+
   const [mode, setMode] = useState<Mode>('product');
 
   const [products, setProducts] = useState<Rec[]>([]);
@@ -86,10 +90,14 @@ export const CalculatorScreen: React.FC = () => {
     );
   }, [products, search]);
 
-  const selected = useMemo(
-    () => products.find((p) => idOf(p) === selectedId) ?? null,
-    [products, selectedId],
-  );
+  // Boshqa ekrandan (Tayyor Mahsulotlar) yuborilgan mahsulotni ham tanlash mumkin
+  const routeProductId = route?.params?.productId;
+  const selected = useMemo(() => {
+    const byPick = products.find((p) => idOf(p) === selectedId);
+    if (byPick) return byPick;
+    if (routeProductId === undefined || routeProductId === null) return null;
+    return products.find((p) => idOf(p) === routeProductId) ?? null;
+  }, [products, selectedId, routeProductId]);
 
   const calc = useMemo(() => {
     const qty = Math.max(0, Math.floor(toNum(qtyStr)));
@@ -141,7 +149,6 @@ export const CalculatorScreen: React.FC = () => {
 
   return (
     <Screen>
-      <H1>Tannarx kalkulyatori</H1>
 
       <View style={s.toggle}>
         <TouchableOpacity
@@ -266,7 +273,7 @@ export const CalculatorScreen: React.FC = () => {
   );
 };
 
-const s = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   toggle: {
     flexDirection: 'row',
     backgroundColor: colors.card,

@@ -78,17 +78,43 @@ export const api = {
   clients: crud('/clients/'),
   deliveries: {
     ...crud('/deliveries/'),
-    changeStatus: (id: number | string, tripStatus: string) =>
+    page: (params: { page?: number; pageSize?: number; driver?: string; status?: string }) => {
+      const q = new URLSearchParams();
+      q.set('page', String(params.page ?? 1));
+      q.set('page_size', String(params.pageSize ?? 10));
+      if (params.driver) q.set('driver_name', params.driver);
+      if (params.status) q.set('status', params.status);
+      return apiFetch<{ count: number; next: string | null; previous: string | null; results: Record<string, unknown>[] }>(
+        `/deliveries/?${q.toString()}`,
+      );
+    },
+    changeStatus: (id: number | string, tripStatus: string, extras?: { traveled_distance_m?: number; traveled_duration_s?: number }) =>
       apiFetch<Record<string, unknown>>(`/deliveries/${id}/status/`, {
         method: 'POST',
-        body: JSON.stringify({ status: tripStatus, updated_by: 'Mobile' }),
+        body: JSON.stringify({ status: tripStatus, updated_by: 'Mobile', ...(extras ?? {}) }),
       }),
-    stats: (period?: 'day' | 'month' | 'year') =>
-      apiFetch<{
+    monthly: (opts?: { driver?: string; year?: number; onlyDelivered?: boolean }) => {
+      const q = new URLSearchParams();
+      if (opts?.driver) q.set('driver_name', opts.driver);
+      if (opts?.year) q.set('year', String(opts.year));
+      if (opts?.onlyDelivered) q.set('only_delivered', '1');
+      const qs = q.toString();
+      return apiFetch<{ year: number; months: { month: number; count: number; fee: number }[] }>(
+        `/deliveries/monthly/${qs ? `?${qs}` : ''}`,
+      );
+    },
+    stats: (opts?: { period?: 'day' | 'month' | 'year'; driver?: string; onlyDelivered?: boolean }) => {
+      const q = new URLSearchParams();
+      if (opts?.period) q.set('period', opts.period);
+      if (opts?.driver) q.set('driver_name', opts.driver);
+      if (opts?.onlyDelivered) q.set('only_delivered', '1');
+      const qs = q.toString();
+      return apiFetch<{
         day?: { trip_count: number; total_delivery_fee: number };
         month?: { trip_count: number; total_delivery_fee: number };
         year?: { trip_count: number; total_delivery_fee: number };
-      }>(`/deliveries/stats/${period ? `?period=${period}` : ''}`),
+      }>(`/deliveries/stats/${qs ? `?${qs}` : ''}`);
+    },
   },
   transactions: crud('/transactions/'),
   employees: crud('/employees/'),
@@ -109,6 +135,25 @@ export const api = {
         '/salary-payments/' + q,
       ).then((r) => (Array.isArray(r?.results) ? r.results : []));
     },
+    create: (body: Record<string, unknown>) =>
+      apiFetch<Record<string, unknown>>('/salary-payments/', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    update: (id: number | string, body: Record<string, unknown>) =>
+      apiFetch<Record<string, unknown>>(`/salary-payments/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      }),
+  },
+  attendanceSettings: {
+    get: () =>
+      apiFetch<Record<string, unknown>>('/attendance-settings/current/'),
+    update: (body: Record<string, unknown>) =>
+      apiFetch<Record<string, unknown>>('/attendance-settings/current/', {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      }),
   },
   attendance: {
     list: (params?: { month?: string; year?: string }) => {

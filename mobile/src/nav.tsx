@@ -18,14 +18,14 @@ import { WaybillsScreen } from './screens/admin/WaybillsScreen';
 import { DeliveriesScreen } from './screens/admin/DeliveriesScreen';
 import { FinanceScreen } from './screens/admin/FinanceScreen';
 import { ProductionHubScreen } from './screens/admin/ProductionHubScreen';
-import { StoreScreen } from './screens/admin/StoreScreen';
+import { MaterialIntakeScreen } from './screens/admin/MaterialIntakeScreen';
+import { ReadyProductsScreen } from './screens/admin/ReadyProductsScreen';
 import { WarehouseScreen } from './screens/admin/WarehouseScreen';
 import { CalculatorScreen } from './screens/admin/CalculatorScreen';
 import { HrHubScreen } from './screens/admin/HrHubScreen';
 import { EmployeesScreen } from './screens/admin/EmployeesScreen';
 import { PayrollScreen } from './screens/admin/PayrollScreen';
 import { BonusesScreen } from './screens/admin/BonusesScreen';
-import { AttendanceScreen } from './screens/admin/AttendanceScreen';
 
 // Xodim
 import { StaffHomeScreen } from './screens/staff/StaffHomeScreen';
@@ -91,7 +91,16 @@ const ProductionStack: React.FC = () => {
   return (
     <Stack.Navigator screenOptions={opts}>
       <Stack.Screen name="ProductionHub" component={ProductionHubScreen} options={{ title: 'Ishlab chiqarish' }} />
-      <Stack.Screen name="Store" component={StoreScreen} options={{ title: 'Mahsulot va materiallar' }} />
+      <Stack.Screen
+        name="MaterialIntake"
+        component={MaterialIntakeScreen}
+        options={{ title: 'Kirim Materiallari' }}
+      />
+      <Stack.Screen
+        name="ReadyProducts"
+        component={ReadyProductsScreen}
+        options={{ title: 'Tayyor Mahsulotlar' }}
+      />
       <Stack.Screen name="Warehouse" component={WarehouseScreen} options={{ title: 'Omborxona' }} />
       <Stack.Screen name="Calculator" component={CalculatorScreen} options={{ title: 'Kalkulyator' }} />
     </Stack.Navigator>
@@ -106,12 +115,12 @@ const HrStack: React.FC = () => {
       <Stack.Screen name="Employees" component={EmployeesScreen} options={{ title: 'Xodimlar' }} />
       <Stack.Screen name="Payroll" component={PayrollScreen} options={{ title: 'Ish haqi' }} />
       <Stack.Screen name="Bonuses" component={BonusesScreen} options={{ title: 'Bonuslar' }} />
-      <Stack.Screen name="Attendance" component={AttendanceScreen} options={{ title: 'Davomat' }} />
     </Stack.Navigator>
   );
 };
 
-const TabIcon = (glyph: string, gold: string) => ({ focused }: { focused: boolean }) => (
+const TabIcon = (glyph: string, gold: string) => {
+  const Icon = ({ focused }: { focused: boolean }) => (
   <View
     style={{
       width: 36,
@@ -126,7 +135,9 @@ const TabIcon = (glyph: string, gold: string) => ({ focused }: { focused: boolea
   >
     <Text style={{ fontSize: 18 }}>{glyph}</Text>
   </View>
-);
+  );
+  return Icon;
+};
 
 const AdminTabs: React.FC = () => {
   const { colors } = useAppTheme();
@@ -170,27 +181,113 @@ const AdminTabs: React.FC = () => {
   );
 };
 
-const StaffStack: React.FC = () => {
-  const opts = useStackHeaderOpts();
+const StaffTabs: React.FC = () => {
+  const { colors } = useAppTheme();
   return (
-    <Stack.Navigator initialRouteName="StaffHome" screenOptions={opts}>
-      <Stack.Screen name="StaffHome" component={StaffHomeScreen} options={{ title: 'Bosh sahifa' }} />
-      <Stack.Screen name="Checkin" component={CheckinScreen} options={{ title: 'Face ID davomat' }} />
-      <Stack.Screen name="Stats" component={StatsScreen} options={{ title: 'Hisobot' }} />
-      <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profil' }} />
-    </Stack.Navigator>
+    <Tab.Navigator
+      initialRouteName="StaffHome"
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: colors.card,
+          borderTopColor: colors.cardBorder,
+          height: 68,
+          paddingBottom: 10,
+          paddingTop: 6,
+        },
+        tabBarActiveTintColor: colors.gold,
+        tabBarInactiveTintColor: colors.muted,
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
+      }}
+    >
+      <Tab.Screen
+        name="StaffHome"
+        component={StaffHomeScreen}
+        options={{
+          tabBarLabel: 'Asosiy',
+          tabBarIcon: TabIcon('🏠', colors.gold),
+        }}
+      />
+      <Tab.Screen
+        name="Checkin"
+        component={CheckinScreen}
+        options={{
+          tabBarLabel: 'Face ID',
+          tabBarIcon: TabIcon('👁️', colors.gold),
+        }}
+      />
+      <Tab.Screen
+        name="Stats"
+        component={StatsScreen}
+        options={{
+          tabBarLabel: 'Davomat',
+          tabBarIcon: TabIcon('📅', colors.gold),
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          tabBarLabel: 'Profil',
+          tabBarIcon: TabIcon('👤', colors.gold),
+        }}
+      />
+    </Tab.Navigator>
   );
 };
 
-const DriverStack: React.FC = () => {
-  const opts = useStackHeaderOpts();
+const DriverTabs: React.FC = () => {
+  const { colors } = useAppTheme();
   return (
-    <Stack.Navigator initialRouteName="DriverHome" screenOptions={opts}>
-      <Stack.Screen name="DriverHome" component={DriverHomeScreen} options={{ title: 'Bosh sahifa' }} />
-      <Stack.Screen name="DriverMap" component={DriverMapScreen} options={{ title: 'Xarita' }} />
-      <Stack.Screen name="DriverIncome" component={DriverIncomeScreen} options={{ title: 'Daromad' }} />
-      <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profil' }} />
-    </Stack.Navigator>
+    <Tab.Navigator
+      initialRouteName="DriverHome"
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: colors.card,
+          borderTopColor: colors.cardBorder,
+          height: 72,
+          paddingBottom: 12,
+          paddingTop: 8,
+        },
+        tabBarActiveTintColor: colors.gold,
+        tabBarInactiveTintColor: colors.muted,
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '800' },
+      }}
+    >
+      <Tab.Screen
+        name="DriverHome"
+        component={DriverHomeScreen}
+        options={{
+          tabBarLabel: 'Asosiy',
+          tabBarIcon: TabIcon('🏠', colors.gold),
+        }}
+      />
+      <Tab.Screen
+        name="DriverIncome"
+        component={DriverIncomeScreen}
+        options={{
+          tabBarLabel: 'Yetkazish',
+          tabBarIcon: TabIcon('📦', colors.gold),
+        }}
+      />
+      <Tab.Screen
+        name="DriverMap"
+        component={DriverMapScreen}
+        options={{
+          tabBarLabel: 'Xarita',
+          tabBarIcon: TabIcon('🗺️', colors.gold),
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          tabBarLabel: 'Profil',
+          tabBarIcon: TabIcon('👤', colors.gold),
+        }}
+      />
+    </Tab.Navigator>
   );
 };
 
@@ -237,7 +334,7 @@ export const RootNavigator: React.FC = () => {
   }
 
   const Target =
-    role === 'admin' ? AdminTabs : role === 'driver' ? DriverStack : StaffStack;
+    role === 'admin' ? AdminTabs : role === 'driver' ? DriverTabs : StaffTabs;
 
   return (
     <NavigationContainer theme={navTheme}>

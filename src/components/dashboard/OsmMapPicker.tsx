@@ -164,8 +164,10 @@ export const OsmMapPicker: React.FC<OsmMapPickerProps> = ({
 
     const initial = parseCoords(initialLocation);
     const map = L.map(mapContainerRef.current, {
-      zoomControl: true
+      zoomControl: false,
     }).setView(initial, 13);
+    // Zoom tugmalarini pastki chap burchakka joylashtirish (karta/sputnik tugmalaridan tagiga)
+    L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
     // 1. Street layer (OpenStreetMap)
     streetLayerRef.current = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {

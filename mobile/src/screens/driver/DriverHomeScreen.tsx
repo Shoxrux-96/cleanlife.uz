@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
-  FlatList,
+  Image,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -10,141 +10,120 @@ import {
 } from 'react-native';
 import { api } from '../../api';
 import { useAuth } from '../../auth';
-import { Btn, Card, Empty, H1, Loader, Muted, Screen } from '../../components';
-import { colors, fmtMoney } from '../../theme';
+import { Btn, Card, Screen, Loader } from '../../components';
+import { fmtMoney, Palette } from '../../theme';
+import { useAppTheme } from '../../theme-context';
 
 type Rec = Record<string, unknown>;
-
 const str = (r: Rec, k: string): string => String(r[k] ?? '');
 const num = (v: unknown): number => {
   const n = typeof v === 'number' ? v : parseFloat(String(v ?? '0'));
   return typeof n === 'number' && !Number.isNaN(n) ? n : 0;
 };
-const idOf = (r: Rec): number | string => (r.id as number | string) ?? '';
-
-const pad = (n: number): string => String(n).padStart(2, '0');
-const localToday = (): string => {
-  const d = new Date();
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-};
-const dayOf = (r: Rec): string => String(r.created_at ?? '').slice(0, 10);
-
 const isMine = (r: Rec, name: string): boolean => {
   const n = name.trim().toLowerCase();
   if (!n) return false;
   return str(r, 'driver_name').toLowerCase().includes(n);
 };
 
-const statusLabel = (st: string): string => {
-  if (st === 'kutilmoqda') return 'Kutilmoqda';
-  if (st === 'yolda') return "Yo'lda";
-  if (st === 'yetkazildi') return 'Yetkazildi';
-  return st || '—';
-};
+const MONTH_SHORT = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
+const MONTH_FULL = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'];
 
-const statusColor = (st: string): string => {
-  if (st === 'yetkazildi') return colors.green;
-  if (st === 'yolda') return colors.blue;
-  return colors.gold;
-};
-
-const fmtDate = (v: unknown): string => {
-  if (!v) return '';
-  const d = new Date(String(v));
-  if (Number.isNaN(d.getTime())) return String(v);
-  return d.toLocaleString('uz-UZ', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+const fmtShort = (n: number): string => {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace('.0', '') + 'M';
+  if (n >= 1_000) return Math.round(n / 1_000) + 'K';
+  return String(Math.round(n));
 };
 
 export const DriverHomeScreen: React.FC = () => {
+  const { colors } = useAppTheme();
+  const s = useMemo(() => makeStyles(colors), [colors]);
   const { session } = useAuth();
-  const name = session?.name ?? '';
+  const driverName = session?.name ?? 'Haydovchi';
+  const position = session?.position ?? 'Haydovchi';
+  const now = new Date();
+  const year = now.getFullYear();
 
-  const [items, setItems] = useState<Rec[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-  const [busyId, setBusyId] = useState<string | number | null>(null);
+  const [company, setCompany] = useState<Rec | null>(null);
+  const [employee, setEmployee] = useState<Rec | null>(null);
+  const [activeTrips, setActiveTrips] = useState<Rec[]>([]);
+  const [stats, setStats] = useState<{
+    day: { count: number; fee: number };
+    month: { count: number; fee: number };
+    year: { count: number; fee: number };
+  }>({
+    day: { count: 0, fee: 0 },
+    month: { count: 0, fee: 0 },
+    year: { count: 0, fee: 0 },
+  });
+  const [monthly, setMonthly] = useState<{ month: number; count: number; fee: number }[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth());
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     setError('');
     try {
-      const data = (await api.deliveries.list()) as Rec[];
-      setItems(data);
+      const [comp, emp, actPage, statsRes, monthRes] = await Promise.all([
+        api.company.get().catch(() => null),
+        session?.employeeId ? api.employees.get(session.employeeId).catch(() => null) : Promise.resolve(null),
+        api.deliveries.page({ driver: driverName, pageSize: 5 }).catch(() => ({ results: [] as Rec[] } as any)),
+        api.deliveries.stats({ driver: driverName, onlyDelivered: true }),
+        api.deliveries.monthly({ driver: driverName, year, onlyDelivered: true }),
+      ]);
+      setCompany(comp);
+      setEmployee(emp);
+      // Active trips — yolda yoki kutilmoqda
+      setActiveTrips(((actPage as any).results || []).filter((r: Rec) => {
+        const st = str(r, 'status').toLowerCase();
+        return isMine(r, driverName) && st !== 'yetkazildi';
+      }));
+      setStats({
+        day: { count: statsRes.day?.trip_count ?? 0, fee: statsRes.day?.total_delivery_fee ?? 0 },
+        month: { count: statsRes.month?.trip_count ?? 0, fee: statsRes.month?.total_delivery_fee ?? 0 },
+        year: { count: statsRes.year?.trip_count ?? 0, fee: statsRes.year?.total_delivery_fee ?? 0 },
+      });
+      setMonthly(monthRes.months ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Yuklashda xatolik.');
+      setError(e instanceof Error ? e.message : "Yuklashda xatolik.");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [driverName, session?.employeeId, year]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(false); }, [load]);
 
-  const today = useMemo(() => localToday(), []);
-
-  const myToday = useMemo(
-    () => items.filter((r) => isMine(r, name) && dayOf(r) === today),
-    [items, name, today],
+  const maxFee = useMemo(
+    () => Math.max(1, ...monthly.map((m) => m.fee)),
+    [monthly],
   );
-
-  const todayCount = myToday.length;
-  const todayIncome = useMemo(
-    () => myToday.reduce((a, r) => a + num(r.delivery_fee), 0),
-    [myToday],
+  const maxCount = useMemo(
+    () => Math.max(1, ...monthly.map((m) => m.count)),
+    [monthly],
   );
-  const activeCount = useMemo(
-    () => myToday.filter((r) => str(r, 'status') === 'yolda').length,
-    [myToday],
-  );
-
-  const activeTrip = useMemo(
-    () =>
-      myToday.find((r) => str(r, 'status') === 'yolda') ??
-      myToday.find((r) => str(r, 'status') === 'kutilmoqda') ??
-      null,
-    [myToday],
-  );
-
-  const changeStatus = async (r: Rec, next: 'yolda' | 'yetkazildi') => {
-    setBusyId(idOf(r));
-    try {
-      await api.deliveries.changeStatus(idOf(r), next);
-      await load(true);
-    } catch (e) {
-      Alert.alert(
-        'Xatolik',
-        e instanceof Error ? e.message : 'Holatni o‘zgartirishda xatolik.',
-      );
-    } finally {
-      setBusyId(null);
-    }
-  };
+  const sel = monthly[selectedMonth] ?? null;
 
   if (loading && !refreshing) {
     return (
       <Screen>
-        <H1>Xush kelibsiz{ name ? `, ${name}` : ''}!</H1>
         <Loader />
       </Screen>
     );
   }
 
+  const companyName = String(company?.name ?? 'Korxona');
+  const companyLogo = String(company?.logo ?? '');
+  const isLogoImage = companyLogo.startsWith('data:') || companyLogo.startsWith('http');
+
   return (
-    <Screen>
-      <FlatList
-        data={myToday}
-        keyExtractor={(r) => String(r.id)}
+    <Screen style={{ padding: 0 }}>
+      <ScrollView
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 32 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -152,203 +131,378 @@ export const DriverHomeScreen: React.FC = () => {
             tintColor={colors.gold}
           />
         }
-        ListHeaderComponent={
-          <View>
-            <H1>Xush kelibsiz{ name ? `, ${name}` : ''}!</H1>
-            <Muted>Bugungi reyslaringiz — {today}</Muted>
+      >
+        {/* === KORXONA BANNER === */}
+        <View style={s.banner}>
+          <View style={s.bannerTop}>
+            <View style={s.bannerTextCol}>
+              <Text style={s.bannerLabel}>KORXONA</Text>
+              <Text style={s.companyName} numberOfLines={2}>{companyName}</Text>
+              <View style={s.staffChip}>
+                <View style={s.staffDot} />
+                <Text style={s.staffNameInBanner} numberOfLines={1}>
+                  {driverName}
+                  {position ? ` · ${position}` : ''}
+                </Text>
+              </View>
+            </View>
+            <View style={s.logoWrap}>
+              {isLogoImage ? (
+                <Image source={{ uri: companyLogo }} style={s.logoImg} />
+              ) : (
+                <Text style={s.logoText}>{companyLogo || 'B'}</Text>
+              )}
+            </View>
+          </View>
+        </View>
 
-            {error ? (
-              <Card>
-                <Text style={s.error}>{error}</Text>
-                <Btn title="Qayta urinish" onPress={() => load()} ghost />
-              </Card>
-            ) : (
-              <>
-                <View style={s.stats}>
-                  <View style={s.stat}>
-                    <Text style={s.statNum}>{todayCount}</Text>
-                    <Text style={s.statLabel}>Bugungi reyslar</Text>
+        <View style={s.content}>
+          {error ? (
+            <Card>
+              <Text style={s.err}>{error}</Text>
+              <Btn title="Qayta urinish" onPress={() => load(false)} ghost />
+            </Card>
+          ) : null}
+
+          {/* === DAROMAD KARTALARI === */}
+          <View style={s.incomeHead}>
+            <Text style={{ fontSize: 20 }}>💰</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.incomeHeadTitle}>Yetkazilgan reyslardan daromad</Text>
+              <Text style={s.incomeHeadHint}>Faqat yetkazilgan reyslar</Text>
+            </View>
+          </View>
+          <View style={s.incomeRow}>
+            <View style={[s.incomeCard, { borderColor: '#F59E0B55' }]}>
+              <Text style={s.incomePeriod}>Bugun</Text>
+              <Text style={[s.incomeAmount, { color: '#F59E0B' }]} numberOfLines={1}>
+                {fmtMoney(stats.day.fee)}
+              </Text>
+              <Text style={s.incomeMeta}>{stats.day.count} reys</Text>
+            </View>
+            <View style={[s.incomeCard, { borderColor: '#3B82F655' }]}>
+              <Text style={s.incomePeriod}>Shu oy</Text>
+              <Text style={[s.incomeAmount, { color: '#3B82F6' }]} numberOfLines={1}>
+                {fmtMoney(stats.month.fee)}
+              </Text>
+              <Text style={s.incomeMeta}>{stats.month.count} reys</Text>
+            </View>
+            <View style={[s.incomeCard, { borderColor: '#22C55E55' }]}>
+              <Text style={s.incomePeriod}>Shu yil</Text>
+              <Text style={[s.incomeAmount, { color: '#22C55E' }]} numberOfLines={1}>
+                {fmtMoney(stats.year.fee)}
+              </Text>
+              <Text style={s.incomeMeta}>{stats.year.count} reys</Text>
+            </View>
+          </View>
+
+          {/* === OYLIK DIAGRAMMA — DAROMAD === */}
+          <Card>
+            <View style={s.chartHead}>
+              <View>
+                <Text style={s.chartTitle}>Oyma-oy daromad</Text>
+                <Text style={s.chartHint}>{year} yil</Text>
+              </View>
+              <View style={s.legendRow}>
+                <View style={s.legendItem}>
+                  <View style={[s.legendBox, { backgroundColor: colors.gold }]} />
+                  <Text style={s.legendText}>Daromad</Text>
+                </View>
+              </View>
+            </View>
+            <View style={s.chartArea}>
+              {monthly.map((m) => {
+                const h = (m.fee / maxFee) * 140;
+                const isSel = selectedMonth === m.month - 1;
+                const isCur = m.month - 1 === now.getMonth();
+                return (
+                  <TouchableOpacity
+                    key={m.month}
+                    activeOpacity={0.8}
+                    onPress={() => setSelectedMonth(m.month - 1)}
+                    style={s.barWrap}
+                  >
+                    <View style={s.barCol}>
+                      {m.fee > 0 ? (
+                        <View style={[s.bar, {
+                          height: Math.max(4, h),
+                          backgroundColor: colors.gold,
+                          opacity: isSel ? 1 : 0.75,
+                        }]} />
+                      ) : (
+                        <View style={[s.barEmpty, { backgroundColor: colors.cardBorder }]} />
+                      )}
+                    </View>
+                    <Text style={[
+                      s.barLabel,
+                      isCur && { color: colors.gold, fontWeight: '900' },
+                      isSel && !isCur && { color: colors.blue, fontWeight: '900' },
+                    ]}>
+                      {MONTH_SHORT[m.month - 1]}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </Card>
+
+          {/* === OYLIK DIAGRAMMA — REYSLAR SONI === */}
+          <Card>
+            <View style={s.chartHead}>
+              <View>
+                <Text style={s.chartTitle}>Oyma-oy reyslar soni</Text>
+                <Text style={s.chartHint}>{year} yil</Text>
+              </View>
+              <View style={s.legendRow}>
+                <View style={s.legendItem}>
+                  <View style={[s.legendBox, { backgroundColor: colors.green }]} />
+                  <Text style={s.legendText}>Reyslar</Text>
+                </View>
+              </View>
+            </View>
+            <View style={s.chartArea}>
+              {monthly.map((m) => {
+                const h = (m.count / maxCount) * 140;
+                const isSel = selectedMonth === m.month - 1;
+                const isCur = m.month - 1 === now.getMonth();
+                return (
+                  <TouchableOpacity
+                    key={m.month}
+                    activeOpacity={0.8}
+                    onPress={() => setSelectedMonth(m.month - 1)}
+                    style={s.barWrap}
+                  >
+                    <View style={s.barCol}>
+                      {m.count > 0 ? (
+                        <View style={[s.bar, {
+                          height: Math.max(4, h),
+                          backgroundColor: colors.green,
+                          opacity: isSel ? 1 : 0.75,
+                        }]} />
+                      ) : (
+                        <View style={[s.barEmpty, { backgroundColor: colors.cardBorder }]} />
+                      )}
+                    </View>
+                    <Text style={[
+                      s.barLabel,
+                      isCur && { color: colors.gold, fontWeight: '900' },
+                      isSel && !isCur && { color: colors.blue, fontWeight: '900' },
+                    ]}>
+                      {MONTH_SHORT[m.month - 1]}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {sel ? (
+              <View style={s.selBox}>
+                <Text style={s.selTitle}>{MONTH_FULL[sel.month - 1]} {year}</Text>
+                <View style={s.selRow}>
+                  <View style={s.selItem}>
+                    <View style={[s.dot, { backgroundColor: colors.green }]} />
+                    <Text style={s.selLabel}>Reyslar</Text>
+                    <Text style={s.selValue}>{sel.count}</Text>
                   </View>
-                  <View style={s.stat}>
-                    <Text style={s.statNum}>{activeCount}</Text>
-                    <Text style={s.statLabel}>Faol (yo‘lda)</Text>
+                  <View style={s.selItem}>
+                    <View style={[s.dot, { backgroundColor: colors.gold }]} />
+                    <Text style={s.selLabel}>Daromad</Text>
+                    <Text style={[s.selValue, { color: colors.gold }]}>
+                      {fmtShort(sel.fee)}
+                    </Text>
                   </View>
                 </View>
-                <Card>
-                  <Text style={s.cardTitle}>Bugungi daromad</Text>
-                  <Text style={s.income}>{fmtMoney(todayIncome)}</Text>
-                </Card>
+              </View>
+            ) : null}
+          </Card>
 
-                {activeTrip ? (
-                  <Card>
-                    <View style={s.head}>
-                      <Text style={s.code}>
-                        {str(activeTrip, 'trip_code') || 'Faol reys'}
-                      </Text>
-                      <View
-                        style={[
-                          s.badge,
-                          {
-                            borderColor: statusColor(
-                              str(activeTrip, 'status'),
-                            ),
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            s.badgeText,
-                            {
-                              color: statusColor(str(activeTrip, 'status')),
-                            },
-                          ]}
-                        >
-                          {statusLabel(str(activeTrip, 'status'))}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={s.line}>
-                      Mijoz: {str(activeTrip, 'client_name') || '—'}
-                    </Text>
-                    {str(activeTrip, 'destination_address') ? (
-                      <Muted>
-                        {str(activeTrip, 'destination_address')}
-                      </Muted>
-                    ) : null}
-                    <Text style={s.fee}>
-                      {fmtMoney(num(activeTrip.delivery_fee))}
-                    </Text>
-                    <View style={s.row}>
-                      <TouchableOpacity
-                        style={s.smallBtn}
-                        disabled={busyId === idOf(activeTrip)}
-                        onPress={() => changeStatus(activeTrip, 'yolda')}
-                      >
-                        <Text style={s.smallBtnText}>
-                          {busyId === idOf(activeTrip)
-                            ? 'Kuting...'
-                            : "Yo'lda"}
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={s.smallBtn}
-                        disabled={busyId === idOf(activeTrip)}
-                        onPress={() => changeStatus(activeTrip, 'yetkazildi')}
-                      >
-                        <Text style={s.smallBtnText}>
-                          {busyId === idOf(activeTrip)
-                            ? 'Kuting...'
-                            : 'Yetkazildi'}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </Card>
-                ) : (
-                  <Card>
-                    <Muted>Faol reys yo‘q. Bugun uchun topshiriq kutilmoqda.</Muted>
-                  </Card>
-                )}
-
-                <Text style={s.section}>Bugungi reyslar ({myToday.length})</Text>
-              </>
-            )}
-          </View>
-        }
-        renderItem={({ item }) => {
-          const st = str(item, 'status');
-          return (
+          {/* === FAOL REYSLAR === */}
+          {activeTrips.length > 0 ? (
             <Card>
-              <View style={s.head}>
-                <Text style={s.code}>{str(item, 'trip_code') || '—'}</Text>
-                <View style={[s.badge, { borderColor: statusColor(st) }]}>
-                  <Text style={[s.badgeText, { color: statusColor(st) }]}>
-                    {statusLabel(st)}
+              <Text style={s.sectionTitle}>Faol reyslar ({activeTrips.length})</Text>
+              {activeTrips.map((t, i) => (
+                <View key={String(t.id ?? i)} style={s.activeRow}>
+                  <View style={[s.activeNum, { backgroundColor: colors.gold }]}>
+                    <Text style={s.activeNumText}>{i + 1}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.activeClient} numberOfLines={1}>
+                      {str(t, 'client_name') || '—'}
+                    </Text>
+                    <Text style={s.activeAddr} numberOfLines={1}>
+                      📍 {str(t, 'destination_address') || '—'}
+                    </Text>
+                  </View>
+                  <Text style={[s.activeFee, { color: colors.gold }]}>
+                    {fmtShort(num(t.delivery_fee))}
                   </Text>
                 </View>
-              </View>
-              <Text style={s.line}>
-                Mijoz: {str(item, 'client_name') || '—'}
-              </Text>
-              {str(item, 'destination_address') ? (
-                <Muted>{str(item, 'destination_address')}</Muted>
-              ) : null}
-              <View style={s.meta}>
-                <Text style={s.fee}>{fmtMoney(num(item.delivery_fee))}</Text>
-                <Text style={s.date}>{fmtDate(item.created_at)}</Text>
-              </View>
+              ))}
             </Card>
-          );
-        }}
-        ListEmptyComponent={
-          error ? null : !loading ? (
-            <Empty text="Bugun sizga biriktirilgan reyslar yo‘q." />
-          ) : null
-        }
-      />
+          ) : null}
+        </View>
+      </ScrollView>
     </Screen>
   );
 };
 
-const s = StyleSheet.create({
-  stats: { flexDirection: 'row', gap: 10, marginTop: 12 },
-  stat: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderColor: colors.cardBorder,
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 14,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  statNum: { color: colors.gold, fontSize: 24, fontWeight: '900' },
-  statLabel: { color: colors.muted, fontSize: 12, marginTop: 4 },
-  cardTitle: {
-    color: colors.muted,
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 6,
-  },
-  income: { color: colors.gold, fontSize: 26, fontWeight: '900' },
-  section: {
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '800',
-    marginTop: 4,
-    marginBottom: 8,
-  },
-  head: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  code: { color: colors.gold, fontSize: 16, fontWeight: '800' },
-  badge: {
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  badgeText: { fontSize: 12, fontWeight: '800' },
-  line: { color: colors.text, fontSize: 14, marginTop: 4 },
-  meta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  fee: { color: colors.text, fontSize: 15, fontWeight: '800', marginTop: 6 },
-  date: { color: colors.faint, fontSize: 12 },
-  row: { flexDirection: 'row', gap: 8, marginTop: 10 },
-  smallBtn: {
-    flex: 1,
-    borderColor: colors.cardBorder,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  smallBtnText: { color: colors.gold, fontWeight: '700', fontSize: 13 },
-  error: { color: colors.red, fontSize: 14, marginBottom: 8, textAlign: 'center' },
-});
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
+    banner: {
+      backgroundColor: c.gold,
+      paddingTop: 9,
+      paddingBottom: 14,
+      paddingHorizontal: 16,
+      borderBottomLeftRadius: 28,
+      borderBottomRightRadius: 28,
+      shadowColor: c.gold,
+      shadowOpacity: 0.25,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 5,
+    },
+    bannerTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    bannerTextCol: { flex: 1 },
+    bannerLabel: {
+      color: '#1A171599',
+      fontSize: 10,
+      fontWeight: '900',
+      letterSpacing: 2,
+      marginBottom: 2,
+    },
+    companyName: {
+      color: '#1A1715',
+      fontSize: 22,
+      fontWeight: '900',
+      letterSpacing: 0.3,
+      lineHeight: 26,
+    },
+    staffChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: 10,
+      alignSelf: 'flex-start',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 999,
+      backgroundColor: '#1A1715',
+      maxWidth: '100%',
+    },
+    staffDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#22C55E' },
+    staffNameInBanner: { color: '#FFFFFF', fontSize: 12, fontWeight: '800', flexShrink: 1 },
+    logoWrap: {
+      width: 96, height: 96, borderRadius: 48,
+      backgroundColor: '#FFFFFF',
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+      borderWidth: 3, borderColor: '#FFFFFF',
+      shadowColor: '#000',
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 },
+    },
+    logoImg: { width: 90, height: 90, borderRadius: 45, resizeMode: 'cover' },
+    logoText: { color: c.goldDark, fontSize: 46, fontWeight: '900' },
+
+    content: { padding: 16 },
+
+    incomeHead: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginBottom: 10,
+    },
+    incomeHeadTitle: { color: c.text, fontSize: 14, fontWeight: '900' },
+    incomeHeadHint: { color: c.muted, fontSize: 11, marginTop: 2, fontWeight: '600' },
+
+    incomeRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+    incomeCard: {
+      flex: 1,
+      backgroundColor: c.card,
+      borderRadius: 14,
+      padding: 10,
+      borderWidth: 1,
+    },
+    incomePeriod: {
+      color: c.muted,
+      fontSize: 10,
+      fontWeight: '900',
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      marginBottom: 4,
+    },
+    incomeAmount: { fontSize: 15, fontWeight: '900', letterSpacing: 0.2 },
+    incomeMeta: { color: c.muted, fontSize: 11, fontWeight: '700', marginTop: 4 },
+
+    chartHead: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 12,
+    },
+    chartTitle: { color: c.text, fontSize: 15, fontWeight: '800' },
+    chartHint: { color: c.muted, fontSize: 11, marginTop: 1, fontWeight: '600' },
+    legendRow: { flexDirection: 'row', gap: 10 },
+    legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    legendBox: { width: 10, height: 10, borderRadius: 3 },
+    legendText: { color: c.muted, fontSize: 11, fontWeight: '700' },
+
+    chartArea: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      height: 170,
+      paddingVertical: 4,
+      gap: 4,
+    },
+    barWrap: {
+      flex: 1,
+      alignItems: 'center',
+      height: '100%',
+      justifyContent: 'flex-end',
+    },
+    barCol: {
+      width: '70%',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+    },
+    bar: { width: '100%', borderRadius: 4 },
+    barEmpty: { width: '100%', height: 2, borderRadius: 2 },
+    barLabel: { color: c.muted, fontSize: 10, marginTop: 6, fontWeight: '700' },
+
+    selBox: {
+      marginTop: 12,
+      padding: 12,
+      backgroundColor: c.bg,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: c.cardBorder,
+    },
+    selTitle: { color: c.text, fontSize: 14, fontWeight: '900', marginBottom: 10 },
+    selRow: { flexDirection: 'row', gap: 10 },
+    selItem: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
+    selLabel: { color: c.muted, fontSize: 11, fontWeight: '700' },
+    selValue: { color: c.text, fontSize: 13, fontWeight: '800', marginLeft: 'auto' },
+    dot: { width: 8, height: 8, borderRadius: 4 },
+
+    sectionTitle: { color: c.text, fontSize: 14, fontWeight: '900', marginBottom: 10 },
+    activeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      paddingVertical: 10,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: c.cardBorder,
+    },
+    activeNum: {
+      width: 28, height: 28, borderRadius: 14,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    activeNumText: { color: '#FFF', fontWeight: '900', fontSize: 12 },
+    activeClient: { color: c.text, fontSize: 13, fontWeight: '800' },
+    activeAddr: { color: c.muted, fontSize: 11, marginTop: 2, fontWeight: '600' },
+    activeFee: { fontSize: 13, fontWeight: '900' },
+
+    err: { color: c.red, fontSize: 13, marginBottom: 8 },
+  });

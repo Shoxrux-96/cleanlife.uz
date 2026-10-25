@@ -48,7 +48,7 @@ function MainApp() {
   }, []);
   
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-    return localStorage.getItem('brendor_logged_in') !== 'false';
+    return localStorage.getItem('brendor_logged_in') === 'true';
   });
 
   const getViewFromUrl = (): 'site' | 'dashboard' =>
@@ -114,8 +114,8 @@ function MainApp() {
     handleSwitchView('site');
   };
 
-  // If in Dashboard View, render the Business ERP Dashboard
-  if (currentView === 'dashboard') {
+  // If in Dashboard View, render the Business ERP Dashboard (only when logged in)
+  if (currentView === 'dashboard' && isLoggedIn) {
     return (
       <Suspense
         fallback={
@@ -132,6 +132,12 @@ function MainApp() {
     );
   }
 
+  // Not logged in but asked for dashboard — bounce back to site and prompt login
+  if (currentView === 'dashboard' && !isLoggedIn && !isLoginModalOpen) {
+    setIsLoginModalOpen(true);
+    handleSwitchView('site');
+  }
+
   return (
     <div className={`min-h-screen font-sans selection:bg-[#C59B27] selection:text-black transition-colors duration-200 ${
       theme === 'dark' ? 'bg-[#121110] text-[#EFECE6]' : 'bg-[#FAF8F5] text-[#1A1715]'
@@ -143,29 +149,6 @@ function MainApp() {
         isLoggedIn={isLoggedIn}
         onOpenDashboard={() => handleSwitchView('dashboard')}
       />
-
-      {/* Persistent Bar when logged in as Manager */}
-      {isLoggedIn && (
-        <div className={`px-4 py-2 text-xs flex items-center justify-between border-b transition-colors ${
-          theme === 'dark' 
-            ? 'bg-[#1C1814] border-[#3E342B] text-[#CFC6B9]' 
-            : 'bg-[#F2ECE1] border-[#E2DBD1] text-[#383127]'
-        }`}>
-          <div className="flex items-center gap-2 max-w-7xl mx-auto w-full justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>{t.app.adminBar} <strong>Akbar Xolmatov</strong></span>
-            </div>
-            <button
-              onClick={() => handleSwitchView('dashboard')}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-[#D4AF37] hover:bg-[#E2BE46] text-black font-bold text-[11px] transition-colors cursor-pointer"
-            >
-              <LayoutDashboard className="w-3.5 h-3.5" />
-              <span>{t.app.erpGo}</span>
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* 5. Hero Section & 6. Hero Interactive Transformation */}
       <Hero onOpenQuote={() => handleOpenQuote()} />

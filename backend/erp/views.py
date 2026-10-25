@@ -576,6 +576,18 @@ class DeliveryTripViewSet(viewsets.ModelViewSet):
     search_fields = ['trip_code', 'driver_name', 'client_name', 'order_number', 'waybill_ttn_number', 'status']
     ordering_fields = ['created_at', 'delivery_fee', 'id']
 
+    def get_queryset(self):
+        qs = DeliveryTrip.objects.all().order_by('-created_at')
+        # ?driver_name=NAME — mobil ilovadagi haydovchi uchun filter
+        drv = self.request.query_params.get('driver_name') if hasattr(self.request, 'query_params') else None
+        if drv:
+            qs = qs.filter(driver_name__icontains=drv)
+        # ?status=yolda
+        st = self.request.query_params.get('status') if hasattr(self.request, 'query_params') else None
+        if st:
+            qs = qs.filter(status=st)
+        return qs
+
     def _validate_status_transition(self, trip, new_status):
         # QOTISH QOIDASI: «Yetkazildi» holatiga o'tgan reysni hech kim o'zgartira olmaydi
         if trip.status == 'yetkazildi':
@@ -612,12 +624,61 @@ class DeliveryTripViewSet(viewsets.ModelViewSet):
             return Response({'detail': error}, status=status.HTTP_400_BAD_REQUEST)
 
         trip.status = new_status
+        now = timezone.now()
+        if new_status == 'yolda' and not trip.started_at:
+            trip.started_at = now
         if new_status == 'yetkazildi':
-            now = timezone.now()
             trip.completed_time = f"{now.strftime('%H:%M')}, {now.date()}"
+            trip.finished_at = now
+            # Mobil ilovadan kelgan reys tarixi (masofa + vaqt)
+            td = request.data.get('traveled_distance_m')
+            tdur = request.data.get('traveled_duration_s')
+            if td is not None:
+                try:
+                    trip.traveled_distance_m = float(td)
+                except (TypeError, ValueError):
+                    pass
+            if tdur is not None:
+                try:
+                    trip.traveled_duration_s = int(tdur)
+                except (TypeError, ValueError):
+                    pass
         trip.updated_by = request.data.get('updated_by', 'Admin')
         trip.save()
         return Response(self.get_serializer(trip).data)
+
+    @action(detail=False, methods=['get'], url_path='monthly')
+    def monthly(self, request):
+        """12 oy bo'yicha reyslar soni va yetkazish haqi.
+        ?driver_name=X — haydovchi filteri; ?year=YYYY — yil (default: joriy yil).
+        """
+        from datetime import date
+        try:
+            year = int(request.query_params.get('year') or date.today().year)
+        except (TypeError, ValueError):
+            year = date.today().year
+        drv = request.query_params.get('driver_name')
+        only_delivered = request.query_params.get('only_delivered') in ('1', 'true', 'yes')
+
+        months = []
+        for m in range(1, 13):
+            start = date(year, m, 1)
+            if m == 12:
+                end = date(year, 12, 31)
+            else:
+                end = date(year, m + 1, 1)
+            qs = DeliveryTrip.objects.filter(created_at__date__gte=start, created_at__date__lt=end) if m != 12 else \
+                 DeliveryTrip.objects.filter(created_at__date__gte=start, created_at__date__lte=end)
+            if drv:
+                qs = qs.filter(driver_name__icontains=drv)
+            if only_delivered:
+                qs = qs.filter(status='yetkazildi')
+            months.append({
+                'month': m,
+                'count': qs.count(),
+                'fee': float(qs.aggregate(s=Sum('delivery_fee'))['s'] or 0),
+            })
+        return Response({'year': year, 'months': months})
 
     @action(detail=False, methods=['get'], url_path='stats')
     def stats(self, request):
@@ -629,10 +690,19 @@ class DeliveryTripViewSet(viewsets.ModelViewSet):
         month_start = today.replace(day=1)
         year_start = today.replace(month=1, day=1)
 
+        # ?driver_name=NAME — faqat shu haydovchining reyslari bo'yicha
+        # ?only_delivered=1 — faqat yetkazilgan reyslar (haydovchi daromadi uchun)
+        drv = request.query_params.get('driver_name')
+        only_delivered = request.query_params.get('only_delivered') in ('1', 'true', 'yes')
+
         def calc(start_date, end_date=None):
             qs = DeliveryTrip.objects.filter(created_at__date__gte=start_date)
             if end_date:
                 qs = qs.filter(created_at__date__lte=end_date)
+            if drv:
+                qs = qs.filter(driver_name__icontains=drv)
+            if only_delivered:
+                qs = qs.filter(status='yetkazildi')
             return {
                 'trip_count': qs.count(),
                 'total_delivery_fee': qs.aggregate(s=Sum('delivery_fee'))['s'] or 0,

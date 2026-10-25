@@ -344,6 +344,11 @@ class DeliveryTrip(models.Model):
     waybill = models.ForeignKey(WaybillTTN, on_delete=models.SET_NULL, blank=True, null=True, related_name='trips')
     waybill_ttn_number = models.CharField(max_length=100, blank=True, default='')
     delivery_fee = models.DecimalField(max_digits=14, decimal_places=2, blank=True, null=True)
+    # Reys tarixi — haydovchi bosib o'tgan masofa (metrda) va vaqt (sekundda)
+    traveled_distance_m = models.FloatField(blank=True, null=True)
+    traveled_duration_s = models.IntegerField(blank=True, null=True)
+    started_at = models.DateTimeField(blank=True, null=True)
+    finished_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_by = models.CharField(max_length=255, blank=True, null=True)
 

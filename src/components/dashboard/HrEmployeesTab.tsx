@@ -744,16 +744,30 @@ export const HrEmployeesTab: React.FC<HrEmployeesTabProps> = ({
                     required={!editingEmployee}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setFormData(prev => ({
-                            ...prev,
-                            avatar: reader.result as string
-                          }));
-                        };
-                        reader.readAsDataURL(file);
-                      }
+                      if (!file) return;
+                      // 3×4 proporsiya saqlab, max 600px balandlikda qisqartirish (face-api uchun yetarli)
+                      const img = new Image();
+                      const url = URL.createObjectURL(file);
+                      img.onload = () => {
+                        URL.revokeObjectURL(url);
+                        const MAX_H = 600;
+                        const MAX_W = 450; // 3:4 nisbat
+                        let w = img.width;
+                        let h = img.height;
+                        const scale = Math.min(MAX_W / w, MAX_H / h, 1);
+                        w = Math.round(w * scale);
+                        h = Math.round(h * scale);
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w;
+                        canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        if (!ctx) return;
+                        ctx.drawImage(img, 0, 0, w, h);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                        setFormData(prev => ({ ...prev, avatar: dataUrl }));
+                      };
+                      img.onerror = () => URL.revokeObjectURL(url);
+                      img.src = url;
                     }}
                     className="w-full px-3 py-2 rounded-xl bg-stone-50 dark:bg-[#12100E] border border-stone-200 dark:border-[#2E2720] text-[#1A1715] dark:text-[#FAF7F2] file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-medium file:bg-amber-100 dark:file:bg-amber-900/30 file:text-amber-700 dark:file:text-amber-400 cursor-pointer"
                   />

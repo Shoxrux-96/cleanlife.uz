@@ -320,6 +320,23 @@ const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
     }
   }, [activeTab]);
 
+  // Haydovchi mobil ilovada reys statusini o'zgartirsa, veb-saytda avtomatik ko'rinsin uchun polling
+  useEffect(() => {
+    const refresh = () => {
+      erpApi.deliveries.list().then(setDeliveries).catch(() => {});
+    };
+    const id = setInterval(refresh, 5000);
+    const onFocus = () => refresh();
+    const onVisible = () => { if (document.visibilityState === 'visible') refresh(); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
+
   // Selected product passed into calculator
   const [calculatorSelectedProduct, setCalculatorSelectedProduct] = useState<ErpProduct | null>(null);
 
@@ -333,6 +350,51 @@ const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
       const created = await erpApi.transactions.create(newTx);
       setTransactions(prev => [created, ...prev]);
       showNotification('Yangi moliyaviy tranzaksiya kiritildi!');
+    } catch (e) {
+      showNotification(e instanceof Error ? e.message : 'Xatolik yuz berdi');
+    }
+  };
+
+  // Omborxona: ishlab chiqarilgan mahsulotni omborga kiritish (moliyada CHIQIM + zaxira)
+  const handleRecordWarehouseReceipt = async (payload: {
+    productName: string;
+    sku: string;
+    quantity: number;
+    unitPrice: number;
+    amount: number;
+    date: string;
+  }) => {
+    try {
+      const created = await erpApi.transactions.create({
+        type: 'chiqim',
+        category: 'Mahsulot ishlab chiqarish',
+        amount: Math.round(payload.amount),
+        paymentMethod: 'bank_transfer',
+        date: payload.date,
+        description: `Tayyor mahsulot: ${payload.productName} — ${payload.quantity} dona × ${Math.round(
+          payload.unitPrice
+        )} so'm (SKU: ${payload.sku})`
+      });
+      setTransactions(prev => [created, ...prev]);
+      showNotification('Mahsulot omborga kiritildi!');
+    } catch (e) {
+      showNotification(e instanceof Error ? e.message : 'Xatolik yuz berdi');
+    }
+  };
+
+  // Omborxona: partiya yozuvini o'chirish (zaxira ham qaytariladi)
+  const handleDeleteWarehouseReceipt = async (txId: string, productId: string, quantity: number) => {
+    try {
+      await erpApi.transactions.remove(txId);
+      setTransactions(prev => prev.filter(t => t.id !== txId));
+      const product = products.find(p => p.id === productId);
+      if (product) {
+        const updated = await erpApi.products.update(productId, {
+          stockCount: Math.max(0, (product.stockCount || 0) - quantity)
+        });
+        setProducts(prev => prev.map(p => (p.id === updated.id ? updated : p)));
+      }
+      showNotification('Yozuv o‘chirildi');
     } catch (e) {
       showNotification(e instanceof Error ? e.message : 'Xatolik yuz berdi');
     }
@@ -1317,6 +1379,9 @@ const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
             <ProductionWarehouseTab
               materials={materials}
               products={products}
+              transactions={transactions}
+              onRecordReceipt={handleRecordWarehouseReceipt}
+              onDeleteReceipt={handleDeleteWarehouseReceipt}
               onUpdateMaterial={handleUpdateMaterial}
               onUpdateProduct={handleUpdateProduct}
               onAddProduct={handleAddProduct}
