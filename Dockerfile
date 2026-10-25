@@ -6,7 +6,8 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-RUN npm ci --prefer-offline --no-audit --no-fund || npm install
+RUN npm ci --prefer-offline --no-audit --no-fund --legacy-peer-deps \
+ || npm install --no-audit --no-fund --legacy-peer-deps
 
 COPY . .
 
