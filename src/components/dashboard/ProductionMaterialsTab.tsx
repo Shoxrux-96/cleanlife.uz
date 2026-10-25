@@ -9,6 +9,7 @@ import {
 import { RawMaterial, CompanyInfo } from '../../types/erp';
 import { TablePagination } from './TablePagination';
 import { MaterialReceiptModal, MaterialPurchasePayload } from './MaterialReceiptModal';
+import { BomAnalysisCard } from './BomAnalysisCard';
 import { useLanguage } from '../../context/LanguageContext';
 
 interface ProductionMaterialsTabProps {
@@ -188,6 +189,9 @@ export const ProductionMaterialsTab: React.FC<ProductionMaterialsTabProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* BOM Tahlili — xom-ashyo sarfi strukturasi */}
+      <BomAnalysisCard />
+
       {/* Top Header & Summary Stats */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

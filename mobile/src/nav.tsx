@@ -211,7 +211,7 @@ const AdminTabs: React.FC = () => {
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopColor: colors.cardBorder,
-          height: 81,
+          height: 96,
           paddingBottom: 10,
           paddingTop: 6,
         },
@@ -255,7 +255,7 @@ const StaffTabs: React.FC = () => {
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopColor: colors.cardBorder,
-          height: 81,
+          height: 96,
           paddingBottom: 10,
           paddingTop: 6,
         },
@@ -315,7 +315,7 @@ const DriverTabs: React.FC = () => {
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopColor: colors.cardBorder,
-          height: 85,
+          height: 100,
           paddingBottom: 12,
           paddingTop: 8,
         },

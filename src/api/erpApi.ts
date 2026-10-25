@@ -454,6 +454,7 @@ const toSnake = {
 };
 
 export const erpApi = {
+  rawFetch: <T>(path: string, options?: RequestInit) => apiFetch<T>(path, options),
   transactions: {
     list: () => listAll<Record<string, unknown>>('/transactions/').then(r => r.map(mapTx)),
     create: (body: Omit<FinancialTransaction, 'id'>) =>

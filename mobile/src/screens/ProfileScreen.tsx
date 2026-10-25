@@ -192,7 +192,7 @@ export const ProfileScreen: React.FC = () => {
     ]);
   };
 
-  if (loading && !company) {
+  if (loading && !company && !error) {
     return (
       <Screen>
         <Loader />

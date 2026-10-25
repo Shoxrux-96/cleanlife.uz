@@ -46,6 +46,63 @@ class RawMaterialViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'batch_number', 'supplier', 'category']
     ordering_fields = ['quantity', 'unit_cost', 'id']
 
+    @action(detail=False, methods=['get'], url_path='bom-analysis')
+    def bom_analysis(self, request):
+        """BOM tahlili: xom-ashyo toifalari bo'yicha sarf qiymati.
+
+        BomItem.total_cost'ni material.category bo'yicha yig'adi.
+        BomItem.product.sold_count'ga ko'paytirib — amalda sarflangan qiymatni ham qaytaradi.
+        """
+        from django.db.models import DecimalField, ExpressionWrapper, F, Sum
+        from .models import BomItem
+
+        # Planned cost — har bir mahsulot uchun BOM'da ko'rsatilgan
+        planned_qs = (
+            BomItem.objects.values(category=F('material__category'))
+            .annotate(total=Sum('total_cost'))
+            .order_by('-total')
+        )
+        # Actual — sold_count'ga ko'paytirilgan
+        actual_qs = (
+            BomItem.objects
+            .annotate(
+                effective=ExpressionWrapper(
+                    F('total_cost') * F('product__sold_count'),
+                    output_field=DecimalField(max_digits=18, decimal_places=2),
+                )
+            )
+            .values(category=F('material__category'))
+            .annotate(total=Sum('effective'))
+            .order_by('-total')
+        )
+
+        def _norm(rows):
+            out = {}
+            for r in rows:
+                cat = (r.get('category') or 'Boshqa').strip() or 'Boshqa'
+                out[cat] = float(r.get('total') or 0)
+            return out
+
+        planned = _norm(planned_qs)
+        actual = _norm(actual_qs)
+        all_cats = sorted(set(planned) | set(actual), key=lambda c: -(planned.get(c, 0) + actual.get(c, 0)))
+
+        items = [
+            {
+                'category': c,
+                'planned_cost': round(planned.get(c, 0), 2),
+                'actual_cost': round(actual.get(c, 0), 2),
+            }
+            for c in all_cats
+        ]
+        totals = {
+            'planned_total': round(sum(planned.values()), 2),
+            'actual_total': round(sum(actual.values()), 2),
+            'categories_count': len(all_cats),
+            'bom_items_count': BomItem.objects.count(),
+        }
+        return Response({'items': items, 'totals': totals})
+
 
 class ErpProductViewSet(viewsets.ModelViewSet):
     queryset = ErpProduct.objects.all()

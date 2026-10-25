@@ -54,12 +54,25 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const tok = authTokenStore.get();
   if (tok && !headers.Authorization) headers.Authorization = `Token ${tok}`;
 
+  // Fetch'ga 20 soniya timeout — tarmoq osilib qolsa loader cheksiz aylanmasin
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20_000);
+
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}${path}`, { ...options, headers });
-  } catch {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    });
+  } catch (e) {
+    clearTimeout(timer);
+    if ((e as { name?: string })?.name === 'AbortError') {
+      throw new Error('Server javob bermayapti. Internetingizni tekshirib qayta urining.');
+    }
     throw new Error('Serverga ulanib bo‘lmadi. Wi-Fi va manzilni tekshiring.');
   }
+  clearTimeout(timer);
   if (res.status === 401) authTokenStore.clear();
   if (!res.ok) {
     const err = await res.json().catch(() => ({} as Record<string, unknown>));
