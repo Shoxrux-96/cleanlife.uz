@@ -58,22 +58,46 @@ const statusColor = (s: string, colors: Palette): string => {
   }
 };
 
-const pickImage = (onPick: (dataUrl: string) => void) => {
-  if (Platform.OS !== 'web' || typeof document === 'undefined') {
-    Alert.alert('Eslatma', 'Rasm tanlash web versiyasida ishlaydi.');
+const pickImage = async (onPick: (dataUrl: string) => void) => {
+  // Web: HTML input orqali
+  if (Platform.OS === 'web' && typeof document !== 'undefined') {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => onPick(String(reader.result || ''));
+      reader.readAsDataURL(file);
+    };
+    input.click();
     return;
   }
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  input.onchange = () => {
-    const file = input.files && input.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => onPick(String(reader.result || ''));
-    reader.readAsDataURL(file);
-  };
-  input.click();
+  // Native: expo-image-picker orqali
+  try {
+    const ImagePicker = require('expo-image-picker');
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('Ruxsat kerak', 'Rasm tanlash uchun galereya ruxsati berilmagan.');
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions?.Images ?? 'images',
+      allowsEditing: true,
+      aspect: [3, 4], // 3x4 xodim rasmi
+      quality: 0.7,
+      base64: true,
+    });
+    if (res.canceled || !res.assets?.[0]) return;
+    const asset = res.assets[0];
+    const uri = asset.base64
+      ? `data:image/jpeg;base64,${asset.base64}`
+      : asset.uri;
+    onPick(uri);
+  } catch (e) {
+    Alert.alert('Xatolik', `Rasm tanlab bo'lmadi: ${e instanceof Error ? e.message : String(e)}`);
+  }
 };
 
 export const EmployeesScreen: React.FC = () => {

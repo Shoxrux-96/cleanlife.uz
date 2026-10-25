@@ -1900,31 +1900,71 @@ const DriverMapNative: React.FC = () => {
         />
       </View>
 
-      {/* Trip list */}
-      <ScrollView style={sN.sheet} contentContainerStyle={{ padding: 12, gap: 10 }}>
-        <Text style={sN.sheetTitle}>Faol reyslar ({trips.length})</Text>
-        {trips.length === 0 ? (
-          <Text style={{ color: colors.muted, fontSize: 13 }}>Reyslar yo'q</Text>
-        ) : trips.map((t) => {
-          const id = String(String(t.id ?? ""));
-          const st = str(t, 'status');
-          const isActive = activeId === id;
-          return (
-            <TouchableOpacity
-              key={id}
-              onPress={() => setActiveId(id)}
-              style={[sN.tripRow, isActive && { borderColor: colors.gold }]}
-            >
-              <Text style={[sN.tripCode, { color: colors.gold }]}>{str(t, 'trip_code') || `#${id}`}</Text>
-              <Text style={sN.tripClient}>{str(t, 'client_name') || '—'}</Text>
-              <Text style={sN.tripAddr} numberOfLines={1}>📍 {str(t, 'destination_address') || '—'}</Text>
-              <Text style={[sN.tripStatus, { color: st === 'yetkazildi' ? '#22C55E' : st === 'yolda' ? '#F59E0B' : colors.muted }]}>
-                {st === 'yetkazildi' ? '✓ Yetkazilgan' : st === 'yolda' ? "🚚 Yo'lda" : '⏳ Kutilmoqda'}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      {/* Faol reyslar — pastga tushadigan / tepaga ochiladigan card */}
+      <CollapsibleTripsSheet
+        trips={trips}
+        activeId={activeId}
+        setActiveId={setActiveId}
+        colors={colors}
+      />
+    </View>
+  );
+};
+
+// Pastdan tepaga ochiladigan "Faol reyslar" paneli
+const CollapsibleTripsSheet: React.FC<{
+  trips: Rec[];
+  activeId: string | null;
+  setActiveId: (s: string) => void;
+  colors: Palette;
+}> = ({ trips, activeId, setActiveId, colors }) => {
+  const sN = useMemo(() => nativeStyles(colors), [colors]);
+  const [open, setOpen] = useState(true);
+
+  return (
+    <View style={[sN.sheet, !open && sN.sheetClosed]}>
+      {/* Grab bar + title: bir marta bosilganda yopib/ochib qo'yadi */}
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => setOpen((v) => !v)}
+        style={sN.sheetHandleRow}
+      >
+        <View style={sN.sheetGrab} />
+        <View style={sN.sheetHead}>
+          <Text style={sN.sheetTitle}>
+            {open ? '▼' : '▲'}  Faol reyslar ({trips.length})
+          </Text>
+          <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700' }}>
+            {open ? 'Yopish' : 'Ochish'}
+          </Text>
+        </View>
+      </TouchableOpacity>
+
+      {open ? (
+        <ScrollView contentContainerStyle={{ padding: 12, paddingTop: 4, gap: 10 }}>
+          {trips.length === 0 ? (
+            <Text style={{ color: colors.muted, fontSize: 13 }}>Reyslar yo'q</Text>
+          ) : trips.map((t) => {
+            const id = String(t.id ?? '');
+            const st = str(t, 'status');
+            const isActive = activeId === id;
+            return (
+              <TouchableOpacity
+                key={id}
+                onPress={() => setActiveId(id)}
+                style={[sN.tripRow, isActive && { borderColor: colors.gold }]}
+              >
+                <Text style={[sN.tripCode, { color: colors.gold }]}>{str(t, 'trip_code') || `#${id}`}</Text>
+                <Text style={sN.tripClient}>{str(t, 'client_name') || '—'}</Text>
+                <Text style={sN.tripAddr} numberOfLines={1}>📍 {str(t, 'destination_address') || '—'}</Text>
+                <Text style={[sN.tripStatus, { color: st === 'yetkazildi' ? '#22C55E' : st === 'yolda' ? '#F59E0B' : colors.muted }]}>
+                  {st === 'yetkazildi' ? '✓ Yetkazilgan' : st === 'yolda' ? "🚚 Yo'lda" : '⏳ Kutilmoqda'}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      ) : null}
     </View>
   );
 };
@@ -1944,11 +1984,22 @@ const nativeStyles = (c: Palette) => StyleSheet.create({
   layerText: { color: c.text, fontSize: 12, fontWeight: '700' },
   layerTextActive: { color: c.gold },
   sheet: {
-    maxHeight: 240,
+    maxHeight: 280,
     borderTopWidth: 1, borderTopColor: c.cardBorder,
     backgroundColor: c.card,
   },
-  sheetTitle: { color: c.gold, fontSize: 13, fontWeight: '900', marginBottom: 4 },
+  sheetClosed: { maxHeight: 44 },
+  sheetHandleRow: { paddingTop: 6, paddingBottom: 2 },
+  sheetGrab: {
+    width: 44, height: 4, borderRadius: 2,
+    backgroundColor: c.muted + '66',
+    alignSelf: 'center', marginBottom: 6,
+  },
+  sheetHead: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 12, paddingBottom: 6,
+  },
+  sheetTitle: { color: c.gold, fontSize: 13, fontWeight: '900' },
   tripRow: {
     padding: 10, borderRadius: 10, borderWidth: 1, borderColor: c.cardBorder,
     backgroundColor: c.bg,
