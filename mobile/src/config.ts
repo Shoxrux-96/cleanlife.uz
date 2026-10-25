@@ -11,6 +11,6 @@ const webHost =
 const sameHostApi = webHost ? `http://${webHost}:8000/api` : '';
 
 export const API_BASE =
-  process.env.EXPO_PUBLIC_API_BASE || sameHostApi || 'http://192.168.1.7:8000/api';
+  process.env.EXPO_PUBLIC_API_BASE || sameHostApi || 'https://cleanlife.uz/api';
 
 export const APP_NAME = 'Clean Life ERP';
