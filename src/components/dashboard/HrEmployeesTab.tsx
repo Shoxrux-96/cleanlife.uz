@@ -184,11 +184,10 @@ export const HrEmployeesTab: React.FC<HrEmployeesTabProps> = ({
       zoomControl: true,
     });
 
-    // CartoDB Voyager — OSM asosida, lekin global CDN orqali, cheklovsiz
-    const companyTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
-      maxZoom: 20,
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
+    // OpenStreetMap orqali bizning nginx proxy (region-based 403'ga qarshi)
+    const companyTiles = L.tileLayer('/osm/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
     }).addTo(map);
 
     // Tarmoq uzilganda (ERR_NETWORK_CHANGED va b.) plitkalarni avtomatik qayta yuklash

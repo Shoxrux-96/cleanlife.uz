@@ -553,9 +553,10 @@ export const DeliveryFleetTab: React.FC<DeliveryFleetTabProps> = ({
       attributionControl: false
     }).setView([41.3110, 69.2550], 12);
 
-    // Streets layer
-    streetLayerRef.current = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19
+    // Streets layer — OpenStreetMap orqali nginx proxy
+    streetLayerRef.current = L.tileLayer('/osm/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
     });
 
     // Satellite layer

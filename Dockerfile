@@ -19,7 +19,9 @@ RUN npm run build
 
 FROM nginx:1.27-alpine
 
-RUN rm /etc/nginx/conf.d/default.conf
+RUN rm /etc/nginx/conf.d/default.conf \
+ && mkdir -p /var/cache/nginx/osm \
+ && chown -R nginx:nginx /var/cache/nginx/osm
 COPY deploy/nginx/app.conf /etc/nginx/conf.d/app.conf
 
 COPY --from=build /app/dist /usr/share/nginx/html

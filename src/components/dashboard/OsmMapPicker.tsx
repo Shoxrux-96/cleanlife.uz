@@ -169,11 +169,10 @@ export const OsmMapPicker: React.FC<OsmMapPickerProps> = ({
     // Zoom tugmalarini pastki chap burchakka joylashtirish (karta/sputnik tugmalaridan tagiga)
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
-    // 1. Street layer (CartoDB Voyager — OSM asosli, global CDN, cheklovsiz)
-    streetLayerRef.current = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
-      maxZoom: 20,
-      attribution: '&copy; OpenStreetMap &copy; CARTO'
+    // 1. Street layer (OpenStreetMap orqali nginx proxy)
+    streetLayerRef.current = L.tileLayer('/osm/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
     });
 
     // 2. Satellite layer (Esri World Imagery)
