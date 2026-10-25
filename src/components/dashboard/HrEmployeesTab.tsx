@@ -53,6 +53,9 @@ export const HrEmployeesTab: React.FC<HrEmployeesTabProps> = ({
   const [companyMap, setCompanyMap] = useState<L.Map | null>(null);
   const [companyMarker, setCompanyMarker] = useState<L.Marker | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const streetLayerRef = useRef<L.TileLayer | null>(null);
+  const satelliteLayerRef = useRef<L.TileLayer | null>(null);
+  const [mapLayer, setMapLayer] = useState<'street' | 'satellite'>('street');
   const [mapCoords, setMapCoords] = useState<[number, number] | null>(null);
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [companyFormData, setCompanyFormData] = useState({
@@ -181,17 +184,31 @@ export const HrEmployeesTab: React.FC<HrEmployeesTabProps> = ({
     const map = L.map(mapContainerRef.current, {
       center: [initialLat, initialLng],
       zoom: 14,
-      zoomControl: true,
+      zoomControl: false,
     });
+    L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
-    // OpenStreetMap orqali bizning nginx proxy (region-based 403'ga qarshi)
-    const companyTiles = L.tileLayer('/osm/{z}/{x}/{y}.png', {
+    // Ko'cha: OpenStreetMap orqali bizning nginx proxy (region-based 403'ga qarshi)
+    const streetLayer = L.tileLayer('/osm/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(map);
+    });
 
-    // Tarmoq uzilganda (ERR_NETWORK_CHANGED va b.) plitkalarni avtomatik qayta yuklash
-    companyTiles.on('tileerror', (e: any) => {
+    // Sputnik: Esri World Imagery (bepul, API key kerak emas)
+    const satelliteLayer = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      {
+        maxZoom: 19,
+        attribution: 'Tiles &copy; Esri',
+      }
+    );
+
+    streetLayerRef.current = streetLayer;
+    satelliteLayerRef.current = satelliteLayer;
+    (mapLayer === 'satellite' ? satelliteLayer : streetLayer).addTo(map);
+
+    // Tarmoq uzilganda plitkalarni avtomatik qayta yuklash
+    const retry = (e: any) => {
       const tile = e?.tile as HTMLImageElement | undefined;
       if (!tile) return;
       const done = Number(tile.dataset.tileRetries || 0);
@@ -199,7 +216,9 @@ export const HrEmployeesTab: React.FC<HrEmployeesTabProps> = ({
       tile.dataset.tileRetries = String(done + 1);
       const url = tile.src;
       window.setTimeout(() => { tile.src = url; }, 600 * (done + 1));
-    });
+    };
+    streetLayer.on('tileerror', retry);
+    satelliteLayer.on('tileerror', retry);
 
     let marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(map);
 
@@ -222,10 +241,21 @@ export const HrEmployeesTab: React.FC<HrEmployeesTabProps> = ({
 
     return () => {
       map.remove();
+      streetLayerRef.current = null;
+      satelliteLayerRef.current = null;
       setCompanyMap(null);
       setCompanyMarker(null);
     };
   }, [isCompanyModalOpen]);
+
+  // Ko'cha ↔ Sputnik qatlamini almashtirish
+  useEffect(() => {
+    if (!companyMap || !streetLayerRef.current || !satelliteLayerRef.current) return;
+    const addLayer = mapLayer === 'satellite' ? satelliteLayerRef.current : streetLayerRef.current;
+    const removeLayer = mapLayer === 'satellite' ? streetLayerRef.current : satelliteLayerRef.current;
+    if (companyMap.hasLayer(removeLayer)) companyMap.removeLayer(removeLayer);
+    if (!companyMap.hasLayer(addLayer)) addLayer.addTo(companyMap);
+  }, [mapLayer, companyMap]);
 
   // Teskari geokodlash (koordinatlar -> manzil)
   const reverseGeocode = async (lat: number, lng: number) => {
@@ -1155,7 +1185,34 @@ export const HrEmployeesTab: React.FC<HrEmployeesTabProps> = ({
                     <MapPinIcon className="w-4 h-4 text-amber-600" />
                     {t.dash.employees.companyModal.mapLabel}
                   </label>
-                  <div ref={mapContainerRef} className="w-full h-72 md:h-[560px] rounded-xl border border-stone-200 dark:border-[#2E2720] overflow-hidden" />
+                  <div className="relative w-full h-72 md:h-[560px] rounded-xl border border-stone-200 dark:border-[#2E2720] overflow-hidden">
+                    <div ref={mapContainerRef} className="absolute inset-0" />
+                    {/* Ko'cha / Sputnik toggle */}
+                    <div className="absolute top-3 left-3 z-[1000] flex gap-1 bg-white dark:bg-[#1A1612] rounded-lg shadow-lg border border-stone-200 dark:border-[#2E2720] p-1">
+                      <button
+                        type="button"
+                        onClick={() => setMapLayer('street')}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-md transition ${
+                          mapLayer === 'street'
+                            ? 'bg-amber-500 text-white shadow'
+                            : 'text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-[#2E2720]'
+                        }`}
+                      >
+                        🗺️ Ko'cha
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMapLayer('satellite')}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-md transition ${
+                          mapLayer === 'satellite'
+                            ? 'bg-amber-500 text-white shadow'
+                            : 'text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-[#2E2720]'
+                        }`}
+                      >
+                        🛰️ Sputnik
+                      </button>
+                    </div>
+                  </div>
                   {mapCoords && (
                     <div className="flex items-center gap-2 text-xs text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-[#141210] px-3 py-2 rounded-lg">
                       <MapPinIcon className="w-3.5 h-3.5 text-amber-600" />
