@@ -12,21 +12,37 @@ export interface LoginResult {
   token?: string;
 }
 
-// Login paytida saqlangan token (localStorage web, AsyncStorage'ga keyin ko'chiramiz)
+// Token saqlash: web — localStorage, mobile — AsyncStorage (persistent).
+// Sync kirish uchun ilova boshida `restore()` chaqiriladi va qiymat memory'ga keltiriladi.
+import AsyncStorage from '@react-native-async-storage/async-storage';
 const TOKEN_KEY = 'brendor_auth_token';
 let _memToken: string | null = null;
+let _restored = false;
 export const authTokenStore = {
+  async restore(): Promise<string | null> {
+    if (_restored) return _memToken;
+    try {
+      const fromLs = (globalThis as any).localStorage?.getItem(TOKEN_KEY);
+      if (fromLs) _memToken = fromLs;
+    } catch { /* ignore */ }
+    if (!_memToken) {
+      try { _memToken = await AsyncStorage.getItem(TOKEN_KEY); } catch { /* ignore */ }
+    }
+    _restored = true;
+    return _memToken;
+  },
   get(): string | null {
-    if (_memToken) return _memToken;
-    try { return (globalThis as any).localStorage?.getItem(TOKEN_KEY) || null; } catch { return null; }
+    return _memToken;
   },
   set(t: string) {
     _memToken = t;
     try { (globalThis as any).localStorage?.setItem(TOKEN_KEY, t); } catch { /* ignore */ }
+    AsyncStorage.setItem(TOKEN_KEY, t).catch(() => { /* ignore */ });
   },
   clear() {
     _memToken = null;
     try { (globalThis as any).localStorage?.removeItem(TOKEN_KEY); } catch { /* ignore */ }
+    AsyncStorage.removeItem(TOKEN_KEY).catch(() => { /* ignore */ });
   },
 };
 

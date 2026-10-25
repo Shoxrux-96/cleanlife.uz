@@ -1,9 +1,10 @@
 import React from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Text, View } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth, useAppRole } from './auth';
+import { useCompany } from './company-context';
 import { useAppTheme } from './theme-context';
 
 // Umumiy
@@ -42,24 +43,86 @@ const Tab = createBottomTabNavigator();
 
 const screenOpts = { headerShown: false } as const;
 
+// Korxona logosi + nomi + ekran sarlavhasi — barcha sahifa tepasida
+const CompanyHeader: React.FC<{ title: string }> = ({ title }) => {
+  const { colors } = useAppTheme();
+  const { name, logo } = useCompany();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 }}>
+      {logo ? (
+        <Image
+          source={{ uri: logo }}
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: colors.gold + '55',
+            backgroundColor: '#fff',
+          }}
+          resizeMode="contain"
+        />
+      ) : (
+        <View
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 8,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: colors.gold + '22',
+            borderWidth: 1,
+            borderColor: colors.gold + '55',
+          }}
+        >
+          <Text style={{ fontSize: 16 }}>🏢</Text>
+        </View>
+      )}
+      <View style={{ flexShrink: 1 }}>
+        <Text
+          numberOfLines={1}
+          style={{ color: colors.gold, fontWeight: '900', fontSize: 13, letterSpacing: 0.3 }}
+        >
+          {name}
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}
+        >
+          {title}
+        </Text>
+      </View>
+    </View>
+  );
+};
+
 const useStackHeaderOpts = () => {
   const { colors } = useAppTheme();
   return {
     headerShown: true,
     headerStyle: { backgroundColor: colors.card },
     headerTintColor: colors.gold,
-    headerTitleStyle: {
-      color: colors.text,
-      fontWeight: '800' as const,
-      fontSize: 17,
-      letterSpacing: 0.3,
-    },
+    headerTitle: (p: { children: string }) => <CompanyHeader title={p.children} />,
     headerTitleAlign: 'left' as const,
-    headerTitleContainerStyle: { paddingLeft: 20 },
-    headerLeftContainerStyle: { paddingLeft: 10 },
+    headerTitleContainerStyle: { paddingLeft: 8 },
+    headerLeftContainerStyle: { paddingLeft: 6 },
     headerBackTitle: '',
     headerShadowVisible: true,
     contentStyle: { backgroundColor: colors.bg },
+  };
+};
+
+// Tab navigator uchun yagona top header — faqat logo + nom
+const useTabHeaderOpts = () => {
+  const { colors } = useAppTheme();
+  return {
+    headerShown: true,
+    headerStyle: { backgroundColor: colors.card },
+    headerTintColor: colors.gold,
+    headerTitle: (p: { children: string }) => <CompanyHeader title={p.children} />,
+    headerTitleAlign: 'left' as const,
+    headerTitleContainerStyle: { paddingLeft: 8 },
+    headerShadowVisible: true,
   };
 };
 
@@ -144,7 +207,7 @@ const AdminTabs: React.FC = () => {
   return (
     <Tab.Navigator
       screenOptions={{
-        headerShown: false,
+        headerShown: false, // admin — har bir tab o'z Stack'ini ko'rsatadi, header stack ichida bor
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopColor: colors.cardBorder,
@@ -183,11 +246,12 @@ const AdminTabs: React.FC = () => {
 
 const StaffTabs: React.FC = () => {
   const { colors } = useAppTheme();
+  const headerOpts = useTabHeaderOpts();
   return (
     <Tab.Navigator
       initialRouteName="StaffHome"
       screenOptions={{
-        headerShown: false,
+        ...headerOpts,
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopColor: colors.cardBorder,
@@ -204,6 +268,7 @@ const StaffTabs: React.FC = () => {
         name="StaffHome"
         component={StaffHomeScreen}
         options={{
+          title: 'Asosiy',
           tabBarLabel: 'Asosiy',
           tabBarIcon: TabIcon('🏠', colors.gold),
         }}
@@ -212,6 +277,7 @@ const StaffTabs: React.FC = () => {
         name="Checkin"
         component={CheckinScreen}
         options={{
+          title: 'Face ID',
           tabBarLabel: 'Face ID',
           tabBarIcon: TabIcon('👁️', colors.gold),
         }}
@@ -220,6 +286,7 @@ const StaffTabs: React.FC = () => {
         name="Stats"
         component={StatsScreen}
         options={{
+          title: 'Davomat',
           tabBarLabel: 'Davomat',
           tabBarIcon: TabIcon('📅', colors.gold),
         }}
@@ -228,6 +295,7 @@ const StaffTabs: React.FC = () => {
         name="Profile"
         component={ProfileScreen}
         options={{
+          title: 'Profil',
           tabBarLabel: 'Profil',
           tabBarIcon: TabIcon('👤', colors.gold),
         }}
@@ -238,11 +306,12 @@ const StaffTabs: React.FC = () => {
 
 const DriverTabs: React.FC = () => {
   const { colors } = useAppTheme();
+  const headerOpts = useTabHeaderOpts();
   return (
     <Tab.Navigator
       initialRouteName="DriverHome"
       screenOptions={{
-        headerShown: false,
+        ...headerOpts,
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopColor: colors.cardBorder,
@@ -259,6 +328,7 @@ const DriverTabs: React.FC = () => {
         name="DriverHome"
         component={DriverHomeScreen}
         options={{
+          title: 'Asosiy',
           tabBarLabel: 'Asosiy',
           tabBarIcon: TabIcon('🏠', colors.gold),
         }}
@@ -267,6 +337,7 @@ const DriverTabs: React.FC = () => {
         name="DriverIncome"
         component={DriverIncomeScreen}
         options={{
+          title: 'Yetkazish',
           tabBarLabel: 'Yetkazish',
           tabBarIcon: TabIcon('📦', colors.gold),
         }}
@@ -275,6 +346,7 @@ const DriverTabs: React.FC = () => {
         name="DriverMap"
         component={DriverMapScreen}
         options={{
+          title: 'Xarita',
           tabBarLabel: 'Xarita',
           tabBarIcon: TabIcon('🗺️', colors.gold),
         }}
@@ -283,6 +355,7 @@ const DriverTabs: React.FC = () => {
         name="Profile"
         component={ProfileScreen}
         options={{
+          title: 'Profil',
           tabBarLabel: 'Profil',
           tabBarIcon: TabIcon('👤', colors.gold),
         }}

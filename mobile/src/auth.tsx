@@ -7,7 +7,7 @@ import React, {
   useState,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { api, Role } from './api';
+import { api, authTokenStore, Role } from './api';
 
 export interface Session {
   role: Role;
@@ -51,10 +51,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     (async () => {
       try {
+        // Birinchi — token'ni memory'ga chiqarib qo'yamiz, keyingi API chaqiriqlarda ishlasin
+        await authTokenStore.restore();
         const raw = await AsyncStorage.getItem(KEY);
         if (!cancelled && raw) {
           const parsed = JSON.parse(raw);
-          if (parsed && (parsed.role === 'admin' || parsed.role === 'staff')) {
+          if (
+            parsed &&
+            (parsed.role === 'admin' ||
+              parsed.role === 'staff' ||
+              parsed.role === 'driver')
+          ) {
             setSession(parsed);
           }
         }
@@ -74,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const login = useCallback(async (username: string, password: string) => {
     const res = await api.auth.login(username.trim(), password);
-    if (res.role !== 'admin' && res.role !== 'staff') {
+    if (res.role !== 'admin' && res.role !== 'staff' && res.role !== 'driver') {
       throw new Error('Noma’lum rol.');
     }
     const s: Session = {
@@ -93,10 +100,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const logout = useCallback(async () => {
     try {
+      await api.auth.logout();
+    } catch {
+      /* ignore — token local'da baribir tozalanadi */
+    }
+    try {
       await AsyncStorage.removeItem(KEY);
     } catch {
       /* ignore */
     }
+    authTokenStore.clear();
     setSession(null);
   }, []);
 
