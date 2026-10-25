@@ -184,8 +184,11 @@ export const HrEmployeesTab: React.FC<HrEmployeesTabProps> = ({
       zoomControl: true,
     });
 
-    const companyTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
+    // CartoDB Voyager — OSM asosida, lekin global CDN orqali, cheklovsiz
+    const companyTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      subdomains: 'abcd',
+      maxZoom: 20,
+      attribution: '&copy; OpenStreetMap &copy; CARTO',
     }).addTo(map);
 
     // Tarmoq uzilganda (ERR_NETWORK_CHANGED va b.) plitkalarni avtomatik qayta yuklash
