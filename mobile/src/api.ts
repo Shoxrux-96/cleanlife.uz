@@ -67,10 +67,12 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
     });
   } catch (e) {
     clearTimeout(timer);
+    const target = `${API_BASE}${path}`;
     if ((e as { name?: string })?.name === 'AbortError') {
-      throw new Error('Server javob bermayapti. Internetingizni tekshirib qayta urining.');
+      throw new Error(`Server javob bermayapti (${target}). Internetingizni tekshirib qayta urining.`);
     }
-    throw new Error('Serverga ulanib bo‘lmadi. Wi-Fi va manzilni tekshiring.');
+    const msg = (e as { message?: string })?.message || String(e);
+    throw new Error(`Serverga ulanib bo‘lmadi: ${target}\n(${msg})`);
   }
   clearTimeout(timer);
   if (res.status === 401) authTokenStore.clear();

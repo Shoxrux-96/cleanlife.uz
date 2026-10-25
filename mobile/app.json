@@ -2,7 +2,7 @@
   "expo": {
     "name": "Clean Life ERP",
     "slug": "clean-life-erp",
-    "owner": "shoxrux007",
+    "owner": "shoxrux_ai",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -58,7 +58,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "e08b4f2f-11ab-4777-b4dd-bc1e05895687"
+        "projectId": "280cbd97-06a2-4288-aace-a87e69e4d9a0"
       }
     }
   }
