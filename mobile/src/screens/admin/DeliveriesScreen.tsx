@@ -20,10 +20,13 @@ import * as Location from 'expo-location';
 
 // react-native-maps faqat telefonda (webda codegen yo'q).
 // Expo Go da native modul yo'q — try/catch shart, aks holda butun ilova qora ekranda qotib qoladi.
+// MUHIM: PROVIDER_DEFAULT va PROVIDER_NONE ni yoqamiz. PROVIDER_GOOGLE API kaliti talab qiladi
+// (bizda yo'q) — kaliti bo'lmasa Google Maps APK'da ishga tushganda release buildni crash qiladi.
 let MapView: any = null;
 let Marker: any = null;
 let Polyline: any = null;
 let UrlTile: any = null;
+let MAP_PROVIDER: any = null; // null = OS default (Android: OSM via UrlTile; iOS: Apple Maps)
 if (Platform.OS !== 'web') {
   try {
     const maps = require('react-native-maps');
@@ -31,11 +34,16 @@ if (Platform.OS !== 'web') {
     Marker = maps.Marker;
     Polyline = maps.Polyline;
     UrlTile = maps.UrlTile;
+    // Google provider'ni ATAYLAB ishlatmaymiz — bu API kalit talab qiladi va kaliti yo'q
+    // bo'lsa Android'da native crash beradi. PROVIDER_NONE Android'da bo'sh canvas qaytaradi,
+    // uning ustiga biz OSM UrlTile'ini qo'yamiz.
+    MAP_PROVIDER = maps.PROVIDER_NONE ?? null;
   } catch {
     MapView = null;
     Marker = null;
     Polyline = null;
     UrlTile = null;
+    MAP_PROVIDER = null;
   }
 }
 
@@ -190,7 +198,8 @@ export const DeliveriesScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
 
-  const [layoutMode, setLayoutMode] = useState<'split' | 'table' | 'map'>('split');
+  // Default: 'table' — xarita native modul (react-native-maps) muammosi bo'lsa ham sahifa ochiladi
+  const [layoutMode, setLayoutMode] = useState<'split' | 'table' | 'map'>('table');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | TripStatus>('all');
   const [timeFilter, setTimeFilter] = useState<'all' | 'day' | 'month' | 'year'>('all');
@@ -612,6 +621,8 @@ export const DeliveriesScreen: React.FC = () => {
         </View>
 
         <MapView
+          provider={MAP_PROVIDER}
+          mapType={Platform.OS === 'android' ? 'none' : 'standard'}
           style={s.mapView}
           initialRegion={{
             latitude: coords[0],
@@ -626,6 +637,9 @@ export const DeliveriesScreen: React.FC = () => {
             longitudeDelta: 0.09,
           }}
         >
+          {UrlTile ? (
+            <UrlTile urlTemplate={OSM_STREET} maximumZ={19} flipY={false} />
+          ) : null}
           <Marker coordinate={{ latitude: WAREHOUSE[0], longitude: WAREHOUSE[1] }} title="Asosiy Ombor" description="Toshkent sh., Chilonzor sanoat hududi">
             <Text style={s.mapEmoji}>🏭</Text>
           </Marker>
@@ -1037,6 +1051,7 @@ const FullScreenMap: React.FC<{
     return (
       <MapView
         ref={mapRef}
+        provider={MAP_PROVIDER}
         style={s.map}
         mapType="none"
         zoomControlEnabled={false}

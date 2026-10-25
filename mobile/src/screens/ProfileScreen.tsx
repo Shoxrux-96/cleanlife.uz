@@ -59,10 +59,17 @@ const emptyForm = (): FormState => ({
 
 const fromRec = (r: Rec | null): FormState => {
   if (!r) return emptyForm();
+  const rawLogo = str(r, 'logo');
+  // Prod DB'da `logo` 100+ KB base64 bo'lishi mumkin. Bitta harfni `<Text>` ichida ko'rsatamiz —
+  // base64 yoki URL bo'lsa, korxona nomining birinchi harfiga tushamiz. Haqiqiy rasm esa
+  // formState'da emas, `company.logo` orqali `<Image>` sifatida renderlanadi.
+  const nameFirst = (str(r, 'name').trim().charAt(0) || 'B').toUpperCase();
+  const isLongOrDataUrl = rawLogo.length > 2 || rawLogo.startsWith('data:') || rawLogo.startsWith('http');
+  const logoLetter = isLongOrDataUrl ? nameFirst : (rawLogo || nameFirst);
   return {
     name: str(r, 'name'),
     slogan: str(r, 'slogan'),
-    logo: str(r, 'logo') || 'B',
+    logo: logoLetter,
     location: str(r, 'location'),
     address: str(r, 'address'),
     phone: str(r, 'phone'),
@@ -82,10 +89,12 @@ const fromRec = (r: Rec | null): FormState => {
 const toPayload = (f: FormState): Rec => {
   const latNum = f.lat.trim() ? Number(f.lat.replace(',', '.')) : null;
   const lngNum = f.lng.trim() ? Number(f.lng.replace(',', '.')) : null;
+  // Diqqat: logo payload'ga qo'shilmaydi. Mobil'da `logo` field — bu faqat bir harfli
+  // placeholder (asl rasm `company.logo` orqali ko'rsatiladi). PATCH yuborganda uni
+  // tashlab yuborsak, backend DB'dagi asl base64 rasmni saqlab qoladi.
   return {
     name: f.name.trim(),
     slogan: f.slogan.trim(),
-    logo: f.logo.trim() || 'B',
     location: f.location.trim(),
     address: f.address.trim(),
     phone: f.phone.trim(),
@@ -102,15 +111,24 @@ const toPayload = (f: FormState): Rec => {
   };
 };
 
+// Admin profilining asosiy komponenti. Hook'lar faqat ADMIN rolida chaqiriladi.
+// Oldingi versiya hook'larni erta return'dan keyin chaqirgan edi — bu production build'da
+// "Rendered more hooks than during the previous render" xatosi va cheksiz loader keltirib
+// chiqarardi. Komponentlar ajratilgan — Rules of Hooks saqlanadi.
 export const ProfileScreen: React.FC = () => {
   const { session, logout } = useAuth();
-  const { theme, colors, toggleTheme } = useAppTheme();
-  const s = useMemo(() => makeStyles(colors), [colors]);
   const role = useAppRole();
 
   if (role === 'staff' || role === 'driver') {
     return <StaffProfile session={session} logout={logout} />;
   }
+  return <AdminProfile />;
+};
+
+const AdminProfile: React.FC = () => {
+  const { session, logout } = useAuth();
+  const { theme, colors, toggleTheme } = useAppTheme();
+  const s = useMemo(() => makeStyles(colors), [colors]);
 
   const [company, setCompany] = useState<Rec | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
