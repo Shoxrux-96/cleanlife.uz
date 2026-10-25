@@ -17,7 +17,10 @@ type Children = { children: React.ReactNode };
 
 const makeStyles = (c: Palette) =>
   StyleSheet.create({
-    screen: { flex: 1, backgroundColor: c.bg, padding: 16 },
+    // Tepa va past safe-area allaqachon header (CompanyHeader) va tab bar
+    // (SafeAreaInsets.bottom) tomonidan hisobga olingan. Shuning uchun bu yerda
+    // vertikal padding bermaymiz — kontent header'ga va tab bar'ga to'liq tutashadi.
+    screen: { flex: 1, backgroundColor: c.bg, paddingHorizontal: 16 },
     card: {
       backgroundColor: c.card,
       borderColor: c.cardBorder,
@@ -82,7 +85,13 @@ export const Screen: React.FC<Children & { style?: ViewStyle }> = ({
   style,
 }) => {
   const s = useS();
-  return <SafeAreaView style={[s.screen, style]}>{children}</SafeAreaView>;
+  // edges={['left','right']} — tepa va past safe-area'ni header/tab-bar hal qiladi,
+  // SafeAreaView ularni qayta qo'shib bo'sh joy yaratmasin.
+  return (
+    <SafeAreaView edges={['left', 'right']} style={[s.screen, style]}>
+      {children}
+    </SafeAreaView>
+  );
 };
 
 export const Card: React.FC<Children & { style?: ViewStyle }> = ({
