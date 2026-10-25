@@ -3,6 +3,7 @@ import { ActivityIndicator, Image, Text, View } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth, useAppRole } from './auth';
 import { useCompany } from './company-context';
 import { useAppTheme } from './theme-context';
@@ -204,15 +205,20 @@ const TabIcon = (glyph: string, gold: string) => {
 
 const AdminTabs: React.FC = () => {
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
+  // Har bir telefonga moslashuvchi: 3-tugmali Android nav / gesture nav / iOS home indicator
+  // uchun pastdagi xavfsiz zona (insets.bottom) + 60px foydali balandlik.
+  const BASE = 60;
+  const BOTTOM = Math.max(insets.bottom, 10); // minimal 10 — kichik telefonlar uchun ham qulay
   return (
     <Tab.Navigator
       screenOptions={{
-        headerShown: false, // admin — har bir tab o'z Stack'ini ko'rsatadi, header stack ichida bor
+        headerShown: false,
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopColor: colors.cardBorder,
-          height: 104,
-          paddingBottom: 10,
+          height: BASE + BOTTOM,
+          paddingBottom: BOTTOM,
           paddingTop: 6,
         },
         tabBarActiveTintColor: colors.gold,
@@ -247,6 +253,9 @@ const AdminTabs: React.FC = () => {
 const StaffTabs: React.FC = () => {
   const { colors } = useAppTheme();
   const headerOpts = useTabHeaderOpts();
+  const insets = useSafeAreaInsets();
+  const BASE = 60;
+  const BOTTOM = Math.max(insets.bottom, 10);
   return (
     <Tab.Navigator
       initialRouteName="StaffHome"
@@ -255,8 +264,8 @@ const StaffTabs: React.FC = () => {
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopColor: colors.cardBorder,
-          height: 104,
-          paddingBottom: 10,
+          height: BASE + BOTTOM,
+          paddingBottom: BOTTOM,
           paddingTop: 6,
         },
         tabBarActiveTintColor: colors.gold,
@@ -307,6 +316,9 @@ const StaffTabs: React.FC = () => {
 const DriverTabs: React.FC = () => {
   const { colors } = useAppTheme();
   const headerOpts = useTabHeaderOpts();
+  const insets = useSafeAreaInsets();
+  const BASE = 64;
+  const BOTTOM = Math.max(insets.bottom, 12);
   return (
     <Tab.Navigator
       initialRouteName="DriverHome"
@@ -315,8 +327,8 @@ const DriverTabs: React.FC = () => {
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopColor: colors.cardBorder,
-          height: 108,
-          paddingBottom: 12,
+          height: BASE + BOTTOM,
+          paddingBottom: BOTTOM,
           paddingTop: 8,
         },
         tabBarActiveTintColor: colors.gold,
