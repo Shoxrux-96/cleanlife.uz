@@ -22,14 +22,18 @@ class _TokenUser:
     Haqiqiy Django User'ni almashtiradi: `is_authenticated=True` yetarli.
     """
 
-    __slots__ = ('token', 'id', 'role', 'name', 'employee_id')
+    __slots__ = ('token', 'id', 'pk', 'role', 'name', 'employee_id')
 
     def __init__(self, token: AuthToken):
         self.token = token
         self.id = token.id
+        self.pk = token.id  # DRF UserRateThrottle `request.user.pk`'ni kutadi
         self.role = token.role
         self.name = token.name
         self.employee_id = token.employee_id
+
+    def __str__(self):
+        return f'{self.role}:{self.name or self.employee_id or self.id}'
 
     @property
     def is_authenticated(self) -> bool:
@@ -46,9 +50,6 @@ class _TokenUser:
     @property
     def is_superuser(self) -> bool:
         return self.role == 'admin'
-
-    def __str__(self):
-        return f'{self.role}:{self.name or self.employee_id or self.id}'
 
 
 class TokenAuthentication(authentication.BaseAuthentication):
