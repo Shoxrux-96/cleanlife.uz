@@ -11,6 +11,7 @@ import * as Location from 'expo-location';
 import { api } from '../../api';
 import { useAuth } from '../../auth';
 import { Screen, Loader } from '../../components';
+import { LeafletMap, LeafletMarker, LeafletPolyline } from '../../components/LeafletMap';
 import { Palette } from '../../theme';
 import { useAppTheme } from '../../theme-context';
 
@@ -299,7 +300,15 @@ const WebMap: React.FC<{
   return <View ref={containerRef} style={{ flex: 1 }} />;
 };
 
+// Platforma-agnostik haydovchi xaritasi.
+// Web (react-native-web) rejimida — asl Leaflet-via-DOM implementatsiya.
+// Native (APK) rejimida — WebView ichida Leaflet HTML (DriverMapNative).
 export const DriverMapScreen: React.FC = () => {
+  if (Platform.OS !== 'web') return <DriverMapNative />;
+  return <DriverMapWeb />;
+};
+
+const DriverMapWeb: React.FC = () => {
   const { colors } = useAppTheme();
   const s = useMemo(() => makeStyles(colors), [colors]);
   const { session } = useAuth();
@@ -1752,4 +1761,200 @@ const makeStyles = (c: Palette) => StyleSheet.create({
     zIndex: 6,
   },
   permText: { color: '#FFF', fontSize: 12, fontWeight: '800' },
+});
+
+// ============================================================
+// Native implementatsiya (Android/iOS APK) — WebView ichida Leaflet.
+// Google Maps API kaliti kerak emas, OSM tiles ishlatiladi.
+// ============================================================
+const DriverMapNative: React.FC = () => {
+  const { colors } = useAppTheme();
+  const sN = useMemo(() => nativeStyles(colors), [colors]);
+  const { session } = useAuth();
+  const driverName = session?.name ?? '';
+
+  const [trips, setTrips] = useState<Rec[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [myPos, setMyPos] = useState<[number, number] | null>(null);
+  const [company, setCompany] = useState<Rec | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [layer, setLayer] = useState<'street' | 'satellite'>('street');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [tr, co] = await Promise.all([
+        api.deliveries.list().catch(() => [] as Rec[]),
+        api.company.get().catch(() => null as Rec | null),
+      ]);
+      const mine = (tr as Rec[]).filter((t) => isMine(t, driverName));
+      setTrips(mine);
+      setCompany(co);
+    } finally {
+      setLoading(false);
+    }
+  }, [driverName]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // GPS joylashuv (ixtiyoriy — ruxsat berilmasa, oddiygina ko'rsatilmaydi)
+  useEffect(() => {
+    let sub: Location.LocationSubscription | null = null;
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+        const first = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        setMyPos([first.coords.latitude, first.coords.longitude]);
+        sub = await Location.watchPositionAsync(
+          { accuracy: Location.Accuracy.Balanced, distanceInterval: 25, timeInterval: 10000 },
+          (loc) => setMyPos([loc.coords.latitude, loc.coords.longitude]),
+        );
+      } catch { /* ignore */ }
+    })();
+    return () => { try { sub?.remove(); } catch { /* ignore */ } };
+  }, []);
+
+  const companyCoords = useMemo((): [number, number] | null => {
+    const la = numOrNull(company?.lat);
+    const ln = numOrNull(company?.lng);
+    return la !== null && ln !== null ? [la, ln] : null;
+  }, [company]);
+
+  const markers = useMemo((): LeafletMarker[] => {
+    const out: LeafletMarker[] = [];
+    if (myPos) out.push({ id: 'me', lat: myPos[0], lng: myPos[1], color: '#2563EB', icon: '●', label: 'Men' });
+    if (companyCoords) out.push({ id: 'company', lat: companyCoords[0], lng: companyCoords[1], color: '#10B981', icon: '🏭', label: 'Korxona ombori' });
+    trips.forEach((t, i) => {
+      const c = tripCoords(t);
+      if (!c) return;
+      const st = str(t, 'status');
+      const color = st === 'yetkazildi' ? '#22C55E' : st === 'yolda' ? '#F59E0B' : '#64748B';
+      out.push({
+        id: `trip-${String(t.id ?? "")}`,
+        lat: c[0],
+        lng: c[1],
+        color,
+        icon: String(i + 1),
+        label: `${str(t, 'trip_code')} · ${str(t, 'client_name') || '—'}`,
+      });
+    });
+    return out;
+  }, [myPos, companyCoords, trips]);
+
+  const polylines = useMemo((): LeafletPolyline[] => {
+    // Oddiy to'g'ri chiziq: korxona → faol reys (OSRM yo'q, WebView ichida oson version)
+    if (!companyCoords) return [];
+    return trips
+      .filter((t) => str(t, 'status') === 'yolda')
+      .map((t) => {
+        const c = tripCoords(t);
+        if (!c) return null;
+        return {
+          id: `line-${String(t.id ?? "")}`,
+          coords: [companyCoords, c],
+          color: '#2563EB',
+          weight: 4,
+        } as LeafletPolyline;
+      })
+      .filter(Boolean) as LeafletPolyline[];
+  }, [companyCoords, trips]);
+
+  const center: [number, number] = myPos || companyCoords || DEFAULT_CENTER;
+
+  if (loading && trips.length === 0) {
+    return <Screen><Loader /></Screen>;
+  }
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      {/* Top bar: layer toggle */}
+      <View style={sN.topBar}>
+        <View style={sN.layerPill}>
+          <TouchableOpacity
+            onPress={() => setLayer('street')}
+            style={[sN.layerBtn, layer === 'street' && sN.layerActive]}
+          >
+            <Text style={[sN.layerText, layer === 'street' && sN.layerTextActive]}>🗺️ Ko'cha</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setLayer('satellite')}
+            style={[sN.layerBtn, layer === 'satellite' && sN.layerActive]}
+          >
+            <Text style={[sN.layerText, layer === 'satellite' && sN.layerTextActive]}>🛰️ Sputnik</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Map */}
+      <View style={{ flex: 1 }}>
+        <LeafletMap
+          center={center}
+          zoom={12}
+          layer={layer}
+          markers={markers}
+          polylines={polylines}
+          onMarkerPress={(id) => {
+            if (id.startsWith('trip-')) setActiveId(id.slice(5));
+          }}
+        />
+      </View>
+
+      {/* Trip list */}
+      <ScrollView style={sN.sheet} contentContainerStyle={{ padding: 12, gap: 10 }}>
+        <Text style={sN.sheetTitle}>Faol reyslar ({trips.length})</Text>
+        {trips.length === 0 ? (
+          <Text style={{ color: colors.muted, fontSize: 13 }}>Reyslar yo'q</Text>
+        ) : trips.map((t) => {
+          const id = String(String(t.id ?? ""));
+          const st = str(t, 'status');
+          const isActive = activeId === id;
+          return (
+            <TouchableOpacity
+              key={id}
+              onPress={() => setActiveId(id)}
+              style={[sN.tripRow, isActive && { borderColor: colors.gold }]}
+            >
+              <Text style={[sN.tripCode, { color: colors.gold }]}>{str(t, 'trip_code') || `#${id}`}</Text>
+              <Text style={sN.tripClient}>{str(t, 'client_name') || '—'}</Text>
+              <Text style={sN.tripAddr} numberOfLines={1}>📍 {str(t, 'destination_address') || '—'}</Text>
+              <Text style={[sN.tripStatus, { color: st === 'yetkazildi' ? '#22C55E' : st === 'yolda' ? '#F59E0B' : colors.muted }]}>
+                {st === 'yetkazildi' ? '✓ Yetkazilgan' : st === 'yolda' ? "🚚 Yo'lda" : '⏳ Kutilmoqda'}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+};
+
+const nativeStyles = (c: Palette) => StyleSheet.create({
+  topBar: {
+    position: 'absolute', top: 10, left: 0, right: 0, zIndex: 10,
+    alignItems: 'center', pointerEvents: 'box-none',
+  },
+  layerPill: {
+    flexDirection: 'row', backgroundColor: c.card, padding: 4, borderRadius: 10,
+    borderWidth: 1, borderColor: c.cardBorder,
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4, elevation: 3,
+  },
+  layerBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 7 },
+  layerActive: { backgroundColor: c.gold + '22' },
+  layerText: { color: c.text, fontSize: 12, fontWeight: '700' },
+  layerTextActive: { color: c.gold },
+  sheet: {
+    maxHeight: 240,
+    borderTopWidth: 1, borderTopColor: c.cardBorder,
+    backgroundColor: c.card,
+  },
+  sheetTitle: { color: c.gold, fontSize: 13, fontWeight: '900', marginBottom: 4 },
+  tripRow: {
+    padding: 10, borderRadius: 10, borderWidth: 1, borderColor: c.cardBorder,
+    backgroundColor: c.bg,
+  },
+  tripCode: { fontWeight: '900', fontSize: 13, marginBottom: 2 },
+  tripClient: { color: c.text, fontSize: 13, fontWeight: '800' },
+  tripAddr: { color: c.muted, fontSize: 11, marginTop: 2 },
+  tripStatus: { fontSize: 11, fontWeight: '800', marginTop: 4 },
 });

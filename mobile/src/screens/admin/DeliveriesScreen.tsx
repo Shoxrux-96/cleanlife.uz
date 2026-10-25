@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { api } from '../../api';
 import { Btn, Card, H1, Loader, Muted, Screen } from '../../components';
+import { LeafletMap, LeafletMarker, LeafletPolyline } from '../../components/LeafletMap';
 import { fmtMoney, Palette } from '../../theme';
 import { useAppTheme } from '../../theme-context';
 import * as Location from 'expo-location';
@@ -565,12 +566,68 @@ export const DeliveriesScreen: React.FC = () => {
   );
 
   const renderMap = () => {
+    // Android'da react-native-maps Google Maps API kaliti talab qiladi (kaliti yo'q bo'lsa
+    // native crash beradi). Buning o'rniga WebView+Leaflet'ga asoslangan `LeafletMap`
+    // komponentini ishlatamiz — hamma telefonlarda ishlaydi, API kaliti kerak emas.
+    if (Platform.OS === 'android') {
+      const markers: LeafletMarker[] = [
+        { id: 'warehouse', lat: WAREHOUSE[0], lng: WAREHOUSE[1], color: '#10B981', icon: '🏭', label: 'Asosiy Ombor' },
+      ];
+      const polylines: LeafletPolyline[] = [];
+      items.forEach((d) => {
+        const tc = tripCoords(d);
+        if (!tc) return;
+        const st = str(d, 'status');
+        markers.push({
+          id: String(idOf(d)),
+          lat: tc[0],
+          lng: tc[1],
+          color: st === 'yetkazildi' ? '#22C55E' : st === 'yolda' ? '#F59E0B' : '#64748B',
+          icon: st === 'yolda' ? '🚚' : st === 'yetkazildi' ? '✅' : '⏱️',
+          label: `${str(d, 'trip_code')} · ${str(d, 'client_name')}`,
+        });
+        const info = routeCache[String(idOf(d))];
+        if (info && info.coords.length >= 2 && (idOf(d) === idOf(selectedTrip) || st === 'yolda' || st === 'yetkazildi')) {
+          polylines.push({ id: `pl-${idOf(d)}`, coords: info.coords, color: '#2563EB', weight: 4 });
+        } else if (tc) {
+          polylines.push({ id: `pl-${idOf(d)}`, coords: [WAREHOUSE, tc], color: '#64748B', weight: 2 });
+        }
+      });
+      return (
+        <Card style={s.mapWrap}>
+          <View style={s.mapHead}>
+            <Text style={s.mapTitle}>Jonli Marshrutlar Xaritasi</Text>
+            <View style={s.liveBadge}>
+              <Text style={s.liveBadgeText}>● JONLI</Text>
+            </View>
+            {activeCount > 0 ? (
+              <View style={s.onwayBadge}>
+                <Text style={s.onwayBadgeText}>{activeCount} {'ta yo\'lda'}</Text>
+              </View>
+            ) : null}
+          </View>
+          <View style={s.mapView}>
+            <LeafletMap
+              center={selectedTrip ? tripCoords(selectedTrip) : WAREHOUSE}
+              zoom={11}
+              markers={markers}
+              polylines={polylines}
+              onMarkerPress={(id) => {
+                const d = items.find((x) => String(idOf(x)) === id);
+                if (d) setSelectedId(idOf(d));
+              }}
+            />
+          </View>
+        </Card>
+      );
+    }
+
     if (!MapView) {
       return (
         <Card style={s.mapFallback}>
           <H1>Xarita mavjud emas</H1>
           <Muted>
-            react-native-maps faqat mahalliy build (APK) da ishlaydi. Quyida reyslar ro‘yxati:
+            Mobil ilovaning web rejimida xarita faqat shu komponent orqali ko'rinadi.
           </Muted>
           {items.map((d) => (
             <TouchableOpacity
@@ -622,7 +679,7 @@ export const DeliveriesScreen: React.FC = () => {
 
         <MapView
           provider={MAP_PROVIDER}
-          mapType={Platform.OS === 'android' ? 'none' : 'standard'}
+          mapType="standard"
           style={s.mapView}
           initialRegion={{
             latitude: coords[0],
@@ -1035,6 +1092,27 @@ const FullScreenMap: React.FC<{
         src: `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${dest[0]}%2C${dest[1]}`,
         style: { flex: 1, width: '100%', border: 'none' } as never,
       });
+    }
+
+    // Android — react-native-maps o'rniga LeafletMap (WebView ichida)
+    if (Platform.OS === 'android') {
+      const markers: LeafletMarker[] = [
+        { id: 'wh', lat: WAREHOUSE[0], lng: WAREHOUSE[1], color: '#10B981', icon: '🏭', label: 'Asosiy Ombor' },
+        { id: 'dest', lat: dest[0], lng: dest[1], color: '#EF4444', icon: '📍', label: str(trip ?? {}, 'client_name') || 'Manzil' },
+      ];
+      if (driverPos) markers.push({ id: 'drv', lat: driverPos[0], lng: driverPos[1], color: '#2563EB', icon: '🚚', label: 'Haydovchi' });
+      const polylines: LeafletPolyline[] = [];
+      if (road && road.length >= 2) polylines.push({ id: 'road', coords: road, color: colors.blue, weight: 5 });
+      polylines.push({ id: 'direct', coords: [WAREHOUSE, dest], color: colors.muted, weight: 2 });
+      return (
+        <LeafletMap
+          center={driverPos || dest}
+          zoom={12}
+          layer={layer}
+          markers={markers}
+          polylines={polylines}
+        />
+      );
     }
 
     if (!MapView || !UrlTile) {
