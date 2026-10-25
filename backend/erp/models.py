@@ -520,3 +520,31 @@ class SiteBeforeAfter(models.Model):
 
     def __str__(self):
         return f"Slayder [{self.lang}]"
+
+
+class AuthToken(models.Model):
+    """Login natijasi: har bir mijoz uchun kriptografik token.
+    30 kun yashaydi, keyin o'chadi. Mijoz Authorization: Token <key> bilan yuboradi.
+    """
+    key = models.CharField(max_length=64, unique=True, db_index=True)
+    role = models.CharField(max_length=16)  # admin | staff | driver
+    name = models.CharField(max_length=255, blank=True)
+    employee_id = models.IntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=['-created_at'])]
+
+    @classmethod
+    def issue(cls, role: str, name: str = '', employee_id: int | None = None) -> 'AuthToken':
+        import secrets
+        return cls.objects.create(
+            key=secrets.token_urlsafe(48),
+            role=role,
+            name=name,
+            employee_id=employee_id,
+        )
+
+    def __str__(self):
+        return f'{self.role}:{self.name or self.employee_id}'

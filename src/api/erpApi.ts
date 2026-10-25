@@ -16,11 +16,39 @@ const API_BASE =
     ? 'http://localhost:8000/api'
     : `${window.location.protocol}//${window.location.hostname}:8000/api`);
 
+// Login paytida saqlangan token. Server har bir himoyalangan so'rovda talab qiladi.
+const TOKEN_KEY = 'brendor_auth_token';
+export const authTokenStore = {
+  get(): string | null {
+    try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
+  },
+  set(t: string) {
+    try { localStorage.setItem(TOKEN_KEY, t); } catch { /* ignore */ }
+  },
+  clear() {
+    try { localStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
+  },
+};
+
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-  });
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options?.headers as Record<string, string> | undefined),
+  };
+  const tok = authTokenStore.get();
+  if (tok && !headers.Authorization) headers.Authorization = `Token ${tok}`;
+
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+
+  // 401 → token yaroqsiz, mijozni login'ga qaytarish
+  if (res.status === 401) {
+    authTokenStore.clear();
+    try {
+      // Reload sahifasi — AppContext login screenga olib boradi
+      if (!path.endsWith('/auth/login/')) window.location.reload();
+    } catch { /* ignore */ }
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     const detail = (err as { detail?: string }).detail;
@@ -567,7 +595,9 @@ export const erpApi = {
   },
   auth: {
     login: (body: { login: string; password: string; client: 'web' | 'mobile' }) =>
-      apiFetch<{ role: string; name?: string; employee_id?: number; position?: string; detail?: string; code?: string; attempts_left?: number }>('/auth/login/', { method: 'POST', body: JSON.stringify(body) }),
+      apiFetch<{ role: string; name?: string; employee_id?: number; position?: string; detail?: string; code?: string; attempts_left?: number; token?: string }>('/auth/login/', { method: 'POST', body: JSON.stringify(body) }).then((r) => { if (r.token) authTokenStore.set(r.token); return r; }),
+    logout: () =>
+      apiFetch<{ detail: string }>('/auth/logout/', { method: 'POST' }).catch(() => ({ detail: 'ok' })).finally(() => authTokenStore.clear()),
   },
   contactMessages: {
     list: () => listAll<Record<string, unknown>>('/contact-messages/').then(r => r.map(mapContactMessage)),

@@ -9,10 +9,11 @@ from django.db.models import Count, Sum
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .models import (
-    AttendanceRecord, AttendanceSettings, BonusRecord, CompanyInfo, ContactMessage, DeliveryTrip, Employee, ErpClient, ErpOrder,
+    AttendanceRecord, AttendanceSettings, AuthToken, BonusRecord, CompanyInfo, ContactMessage, DeliveryTrip, Employee, ErpClient, ErpOrder,
     ErpProduct, FinancialTransaction, PayrollRecord, SalaryPayment, RawMaterial,
     SiteBeforeAfter, SiteContactInfo, SitePortfolioProject, WaybillTTN,
 )
@@ -405,14 +406,29 @@ class CompanyInfoViewSet(viewsets.ModelViewSet):
 
 
 class ContactMessageViewSet(viewsets.ModelViewSet):
+    """Veb-saytdan kelgan xabarlar.
+
+    - POST (yangi xabar yozish) — anonim mijoz uchun ochiq
+    - GET/PATCH/DELETE — faqat admin
+    """
     queryset = ContactMessage.objects.all()
     serializer_class = ContactMessageSerializer
     search_fields = ['name', 'phone', 'email', 'message', 'status']
     ordering_fields = ['created_at', 'id']
 
+    def get_permissions(self):
+        if self.action == 'create':
+            return [AllowAny()]
+        return super().get_permissions()
+
 
 class SiteContactInfoViewSet(viewsets.ViewSet):
     """Yagona aloqa yozuvi: GET /api/site/contact-info/, POST yangilash."""
+
+    def get_permissions(self):
+        if self.action == 'list':
+            return [AllowAny()]
+        return super().get_permissions()
 
     def list(self, request):
         obj = SiteContactInfo.get_solo()
@@ -438,6 +454,11 @@ class SitePortfolioProjectViewSet(viewsets.ModelViewSet):
     search_fields = ['external_id', 'business_type']
     ordering_fields = ['id', 'updated_at']
 
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return [AllowAny()]
+        return super().get_permissions()
+
     def get_queryset(self):
         qs = super().get_queryset()
         lang = self.request.query_params.get('lang')
@@ -448,6 +469,11 @@ class SitePortfolioProjectViewSet(viewsets.ModelViewSet):
 
 class SiteBeforeAfterViewSet(viewsets.ViewSet):
     """Slayder kontenti: GET /api/site/slider/?lang=uz, POST {lang, data} saqlash."""
+
+    def get_permissions(self):
+        if self.action == 'list':
+            return [AllowAny()]
+        return super().get_permissions()
 
     def _get_obj(self, lang: str) -> SiteBeforeAfter:
         if lang not in ('uz', 'ru'):
@@ -485,6 +511,7 @@ class AuthViewSet(viewsets.ViewSet):
     - kirish validatsiyasi (SQL injection belgilari erta rad etiladi),
     - xato javoblar umumiy (foydalanuvchi ro'yxatini aniqlashga yo'l qo'yilmaydi).
     """
+    permission_classes = [AllowAny]
     throttle_scope = 'login'
 
     @action(detail=False, methods=['post'], url_path='login')
@@ -520,10 +547,12 @@ class AuthViewSet(viewsets.ViewSet):
                 if upgrade:
                     CompanyInfo.objects.filter(pk=company.pk).update(admin_password=hash_password(password))
                 clear_login_fails(ip, login)
+                tok = AuthToken.issue(role='admin', name=company.admin_name or 'Admin')
                 return Response({
                     'role': 'admin',
                     'name': company.admin_name or 'Admin',
                     'client': client,
+                    'token': tok.key,
                 })
             return self._fail(ip, login)
 
@@ -544,12 +573,16 @@ class AuthViewSet(viewsets.ViewSet):
                 if upgrade:
                     Employee.objects.filter(pk=emp.pk).update(password=hash_password(password))
                 clear_login_fails(ip, login)
+                # Rol: haydovchi yoki oddiy xodim — pozitsiyadan aniqlanadi
+                role = 'driver' if 'haydovchi' in (emp.position or '').lower() else 'staff'
+                tok = AuthToken.issue(role=role, name=emp.full_name, employee_id=emp.pk)
                 return Response({
-                    'role': 'staff',
+                    'role': role,
                     'employee_id': emp.pk,
                     'name': emp.full_name,
                     'position': emp.position,
                     'client': client,
+                    'token': tok.key,
                 })
             return self._fail(ip, login)
 
@@ -568,6 +601,27 @@ class AuthViewSet(viewsets.ViewSet):
             {'detail': 'Login yoki parol noto‘g‘ri.', 'attempts_left': left},
             status=status.HTTP_401_UNAUTHORIZED,
         )
+
+    @action(detail=False, methods=['post'], url_path='logout', permission_classes=[])
+    def logout(self, request):
+        """Joriy token'ni o'chiradi."""
+        from rest_framework import authentication as _a
+        auth = _a.get_authorization_header(request).split()
+        if len(auth) == 2 and auth[0].lower() == b'token':
+            AuthToken.objects.filter(key=auth[1].decode(errors='ignore')).delete()
+        return Response({'detail': 'ok'})
+
+    @action(detail=False, methods=['get'], url_path='me', permission_classes=[])
+    def me(self, request):
+        """Joriy token egasi."""
+        user = request.user
+        if not getattr(user, 'is_authenticated', False):
+            return Response({'detail': 'Avtorizatsiya kerak.'}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({
+            'role': user.role,
+            'name': user.name,
+            'employee_id': user.employee_id,
+        })
 
 
 class DeliveryTripViewSet(viewsets.ModelViewSet):

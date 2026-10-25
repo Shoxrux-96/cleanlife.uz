@@ -1,6 +1,6 @@
 import { API_BASE } from './config';
 
-export type Role = 'admin' | 'staff';
+export type Role = 'admin' | 'staff' | 'driver';
 
 export interface LoginResult {
   role: Role;
@@ -9,18 +9,42 @@ export interface LoginResult {
   position?: string;
   detail?: string;
   code?: string;
+  token?: string;
 }
 
+// Login paytida saqlangan token (localStorage web, AsyncStorage'ga keyin ko'chiramiz)
+const TOKEN_KEY = 'brendor_auth_token';
+let _memToken: string | null = null;
+export const authTokenStore = {
+  get(): string | null {
+    if (_memToken) return _memToken;
+    try { return (globalThis as any).localStorage?.getItem(TOKEN_KEY) || null; } catch { return null; }
+  },
+  set(t: string) {
+    _memToken = t;
+    try { (globalThis as any).localStorage?.setItem(TOKEN_KEY, t); } catch { /* ignore */ }
+  },
+  clear() {
+    _memToken = null;
+    try { (globalThis as any).localStorage?.removeItem(TOKEN_KEY); } catch { /* ignore */ }
+  },
+};
+
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options?.headers as Record<string, string> | undefined),
+  };
+  const tok = authTokenStore.get();
+  if (tok && !headers.Authorization) headers.Authorization = `Token ${tok}`;
+
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}${path}`, {
-      ...options,
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
-    });
+    res = await fetch(`${API_BASE}${path}`, { ...options, headers });
   } catch {
     throw new Error('Serverga ulanib bo‘lmadi. Wi-Fi va manzilni tekshiring.');
   }
+  if (res.status === 401) authTokenStore.clear();
   if (!res.ok) {
     const err = await res.json().catch(() => ({} as Record<string, unknown>));
     const detail =
@@ -62,7 +86,11 @@ export const api = {
       apiFetch<LoginResult>('/auth/login/', {
         method: 'POST',
         body: JSON.stringify({ login, password, client: 'mobile' }),
-      }),
+      }).then((r) => { if (r.token) authTokenStore.set(r.token); return r; }),
+    logout: () =>
+      apiFetch<{ detail: string }>('/auth/logout/', { method: 'POST' })
+        .catch(() => ({ detail: 'ok' }))
+        .finally(() => authTokenStore.clear()),
   },
   overview: () => apiFetch<Record<string, unknown>>('/stats/overview/'),
   products: crud('/products/'),

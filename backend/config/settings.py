@@ -181,13 +181,22 @@ REST_FRAMEWORK = {
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
     ],
+    # Autentifikatsiya: Authorization: Token <key> majburiy (login va health'dan tashqari)
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'erp.auth_backend.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
     # DoS/brute-force himoyasi
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
         'rest_framework.throttling.ScopedRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '200/min',
+        'anon': '60/min',
+        'user': '1000/min',
         'login': '10/min',
     },
 }
