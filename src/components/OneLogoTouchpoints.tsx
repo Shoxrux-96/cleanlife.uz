@@ -54,13 +54,13 @@ export const OneLogoTouchpoints: React.FC = () => {
     {
       id: 'toothpick',
       number: '05',
-      title: 'Tish kovlagich qutisi',
+      title: 'Tish kavlagich qutisi',
       category: 'Stol usti aksessuari',
       desc: 'Stolda butun oqshom davomida turuvchi kichik mini-reklama bilbordingiz.',
       mockupType: 'toothpick' as const,
       placement: 'Karton qutining barcha 4 tarafiga UV-lak bilan bosish',
       realPhotoUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80',
-      realPhotoCaption: 'Zich qora kartonli stol usti tish kovlagich qutisi + UV lak'
+      realPhotoCaption: 'Zich qora kartonli stol usti tish kavlagich qutisi + UV lak'
     },
     {
       id: 'packaging',

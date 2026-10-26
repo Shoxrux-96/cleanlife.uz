@@ -22,7 +22,7 @@ export const INITIAL_QUOTES: QuoteRequest[] = [
     phone: '+998 (90) 123-45-67',
     businessName: 'Chustiy Restaurant',
     businessType: 'Restoran',
-    selectedProducts: ['Nam salfetka', 'Tish kovlagich qutisi', 'Fartuk'],
+    selectedProducts: ['Nam salfetka', 'Tish kavlagich qutisi', 'Fartuk'],
     quantityRange: '500-1000 dona',
     notes: 'Yangi milliy restoran ochilyapti. Oltin va qora rangdagi logo tushirish kerak.',
     status: 'yangi',
@@ -150,7 +150,7 @@ export const INITIAL_BEFORE_AFTER: BeforeAfterContent = {
       afterCaption: 'Qalin kanvas fartuk + Charm tasmalar + Oltin kashta',
     },
     toothpick: {
-      label: 'Tish kovlagich',
+      label: 'Tish kavlagich',
       before: 'https://images.unsplash.com/photo-1537047902294-62a40c20a6ae?auto=format&fit=crop&w=900&q=80',
       after: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=900&q=80',
       beforeCaption: 'Stol ustidagi brendsiz oddiy quti',

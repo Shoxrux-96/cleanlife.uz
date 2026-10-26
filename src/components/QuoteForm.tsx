@@ -34,7 +34,7 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({
 
   const productOptions = [
     'Nam salfetka',
-    'Tish kovlagich qutisi',
+    'Tish kavlagich qutisi',
     'Fartuk',
     'Oshpaz kiyimi',
     'Ofitsiant kiyimi',

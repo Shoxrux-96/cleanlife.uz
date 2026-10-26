@@ -43,7 +43,7 @@ export const INITIAL_TRANSACTIONS: FinancialTransaction[] = [
     amount: 8900000,
     paymentMethod: 'naqd',
     date: '2026-09-25',
-    description: 'Rayhon Milliy Taomlar: 2,000 dona oltin gerbli tish kovlagich va chek papkalar to‘lovi',
+    description: 'Rayhon Milliy Taomlar: 2,000 dona oltin gerbli tish kavlagich va chek papkalar to‘lovi',
     relatedClient: 'Rayhon Milliy Taomlar MCHJ',
     relatedOrderId: 'ORD-1081'
   },
@@ -183,7 +183,7 @@ export const INITIAL_PRODUCTS: ErpProduct[] = [
   },
   {
     id: 'prod-4',
-    name: 'Premium Tish Kovlagich Qutisi (Stol usti)',
+    name: 'Premium Tish Kavlagich Qutisi (Stol usti)',
     sku: 'HRC-BOX-004',
     category: 'stol',
     baseCost: 950,
@@ -195,12 +195,12 @@ export const INITIAL_PRODUCTS: ErpProduct[] = [
     stockCount: 3400,
     soldCount: 36000,
     technique: 'Matte laminatsiya + UV-selektiv lak + Oltin bo‘rtma',
-    specification: '300g/m² qora dizaynerlik kartoni, 60 dona qayin tish kovlagich',
+    specification: '300g/m² qora dizaynerlik kartoni, 60 dona qayin tish kavlagich',
     readyDate: '2026-09-30',
     batchNumber: 'BATCH-2026-09D',
     bom: [
       { materialId: 'mat-9', materialName: 'Zich mat qora dizaynerlik kartoni 300g', quantityNeeded: 0.05, unit: 'metr', unitCost: 12000, totalCost: 600 },
-      { materialId: 'mat-10', materialName: 'Tabiiy bambuk/qayin tish kovlagichlar', quantityNeeded: 60, unit: 'dona', unitCost: 8, totalCost: 480 },
+      { materialId: 'mat-10', materialName: 'Tabiiy bambuk/qayin tish kavlagichlar', quantityNeeded: 60, unit: 'dona', unitCost: 8, totalCost: 480 },
       { materialId: 'mat-11', materialName: 'UV-selektiv lak va oltin zar qatlam', quantityNeeded: 1, unit: 'dona', unitCost: 280, totalCost: 280 }
     ]
   },
@@ -393,7 +393,7 @@ export const INITIAL_RAW_MATERIALS: RawMaterial[] = [
   },
   {
     id: 'mat-10',
-    name: 'Tabiiy bambuk/qayin tish kovlagichlar',
+    name: 'Tabiiy bambuk/qayin tish kavlagichlar',
     batchNumber: 'BMK-2026-880',
     category: 'Aksessuarlar',
     unit: 'pachka',
@@ -483,7 +483,7 @@ export const INITIAL_ORDERS: ErpOrder[] = [
     clientName: 'Dilshod Rahmatov',
     phone: '+998 71 200-11-22',
     businessType: 'Milliy Restoranlar Tarmog‘i',
-    productName: 'Premium Tish Kovlagich Qutisi (Stol usti)',
+    productName: 'Premium Tish Kavlagich Qutisi (Stol usti)',
     quantity: 2000,
     totalAmount: 8900000,
     paidAmount: 8900000,
@@ -870,7 +870,7 @@ export const INITIAL_DELIVERIES: DeliveryTrip[] = [
     destinationAddress: 'Bunyodkor shoh ko‘chasi, 7-A (Rayhon bosh filiali)',
     clientName: 'Rayhon Milliy Taomlar MCHJ',
     orderNumber: 'ORD-1081',
-    cargoSummary: '2,000 dona tish kovlagich qutisi va menyu papkalar',
+    cargoSummary: '2,000 dona tish kavlagich qutisi va menyu papkalar',
     status: 'yetkazildi',
     departureTime: '08:00, 2026-09-27',
     completedTime: '09:20, 2026-09-27',
@@ -974,7 +974,7 @@ export const INITIAL_TTN_WAYBILLS: WaybillTTN[] = [
     vehiclePlate: '01 552 ZZA',
     vehicleModel: 'Isuzu NPR 4.5T',
     items: [
-      { name: 'Premium Tish Kovlagich Qutisi (Oltin gerbli UV lak)', unit: 'dona', quantity: 2000, unitPrice: 2800, totalPrice: 5600000 },
+      { name: 'Premium Tish Kavlagich Qutisi (Oltin gerbli UV lak)', unit: 'dona', quantity: 2000, unitPrice: 2800, totalPrice: 5600000 },
       { name: 'Restoran Chek va Taqdimot Papkalari', unit: 'dona', quantity: 100, unitPrice: 33000, totalPrice: 3300000 }
     ],
     totalSum: 8900000,

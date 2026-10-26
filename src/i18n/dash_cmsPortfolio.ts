@@ -45,7 +45,7 @@ export const cmsPortfolioUz = {
     tagline: 'Shior / Qisqa Tavsif (Tagline)',
     taglinePh: 'Masalan: Sharqona hashamat va an’anaviy taomlar maskani',
     story: 'Keys Hikoyasi & Bajarilgan Ish Tavsifi',
-    storyPh: 'Mijoz qanday talab bilan keldi? Qanday mahsulotlar (fartuk, salfetka, tish kovlagich va hk) brendlandi va qanday natijaga erishildi...',
+    storyPh: 'Mijoz qanday talab bilan keldi? Qanday mahsulotlar (fartuk, salfetka, tish kavlagich va hk) brendlandi va qanday natijaga erishildi...',
     photoTitle: 'Foto Namuna Tanlash yoki Yuklash',
     presetLabel: 'Tayyor yuqori sifatli fotosuratlar:',
     urlLabel: 'Rasm URL manzili:',

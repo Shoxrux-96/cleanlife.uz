@@ -2,7 +2,7 @@ import { ServiceItem, ProductItem, PortfolioProject, FAQItem } from '../types';
 
 export const CORE_POSITIONING = {
   headline: "Oddiy mahsulotni brendingizga aylantiramiz.",
-  supportingText: "Tayyor kiyimlar, nam salfetkalar, tish kovlagich qutilari va boshqa mahsulotlarga logotipingizni professional joylashtiramiz. Restoran va xizmat ko‘rsatish biznesingiz uchun yagona brend ko‘rinishini yaratamiz.",
+  supportingText: "Tayyor kiyimlar, nam salfetkalar, tish kavlagich qutilari va boshqa mahsulotlarga logotipingizni professional joylashtiramiz. Restoran va xizmat ko‘rsatish biznesingiz uchun yagona brend ko‘rinishini yaratamiz.",
   notAFactoryBadge: "Biz kiyim tikmaymiz — tayyor mahsulotlarga brendingizni joylashtiramiz",
   slogan: "Oddiy mahsulotni brend mahsulotiga aylantiramiz.",
   tagline: "Restoraningiz brendi — salfetkadan xodim formasigacha.",
@@ -28,11 +28,11 @@ export const SERVICES_DATA: ServiceItem[] = [
   {
     id: 'toothpick-boxes',
     number: '02',
-    title: 'Tish kovlagich qutilari',
-    shortDesc: 'Restoran stolida turadigan tish kovlagich qutilarini ham brendingizning bir qismiga aylantiramiz.',
-    fullDesc: 'Kichik, ammo har bir mijoz e’tibor qaratadigan eng faol aloqa nuqtasi. Stol ustidagi tish kovlagich qutilariga restoraningiz timsoli, milliy ornament yoki lakonik logotipini estetik va toza joylashtiramiz.',
+    title: 'Tish kavlagich qutilari',
+    shortDesc: 'Restoran stolida turadigan tish kavlagich qutilarini ham brendingizning bir qismiga aylantiramiz.',
+    fullDesc: 'Kichik, ammo har bir mijoz e’tibor qaratadigan eng faol aloqa nuqtasi. Stol ustidagi tish kavlagich qutilariga restoraningiz timsoli, milliy ornament yoki lakonik logotipini estetik va toza joylashtiramiz.',
     tag: 'Detal brendingi',
-    features: ['Stol estetikasini oshiradi', 'Individual o‘ramdagi tish kovlagichlar', 'Kompakt va chiroyli dizayn'],
+    features: ['Stol estetikasini oshiradi', 'Individual o‘ramdagi tish kavlagichlar', 'Kompakt va chiroyli dizayn'],
     materials: ['Melovanniy zich karton', 'Eko Kraft karton', 'Mat laminatsiya'],
     techniques: ['Ofset bosma + UV-lak', 'Folga tushirish (Gold/Silver)'],
     mockupType: 'toothpick',
@@ -174,16 +174,16 @@ export const PRODUCTS_CATALOG: ProductItem[] = [
   },
   {
     id: 'p-toothpick',
-    name: 'Brendlangan Tish Kovlagich Qutilari',
+    name: 'Brendlangan Tish Kavlagich Qutilari',
     category: 'stol',
-    description: 'Stol usti uchun mo‘ljallangan zich karton qutichalarga to‘liq rangli bosma va himoya laminatsiyasi. Har bir tish kovlagich gigiyenik o‘ralgan.',
+    description: 'Stol usti uchun mo‘ljallangan zich karton qutichalarga to‘liq rangli bosma va himoya laminatsiyasi. Har bir tish kavlagich gigiyenik o‘ralgan.',
     suitableFor: 'Restoranlar, Kafelar, Choyxonalar',
     printMethods: ['Ofset bosma', 'Mat laminatsiya + UV lak'],
     minOrder: '500 dona',
     leadTime: '4-6 ish kuni',
     popular: true,
     imageUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=700&q=80',
-    realPhotoCaption: 'Zich qora kartondan tayyorlangan stol usti tish kovlagich qutisi + UV-lak'
+    realPhotoCaption: 'Zich qora kartondan tayyorlangan stol usti tish kavlagich qutisi + UV-lak'
   },
   {
     id: 'p-napkin',
@@ -283,9 +283,9 @@ export const PORTFOLIO_PROJECTS: PortfolioProject[] = [
     businessType: 'Restoran',
     location: 'Toshkent sh., Yunusobod',
     tagline: 'Sharqona hashamat va an’anaviy taomlar maskani',
-    story: 'Mijoz 140 o‘rinli yangi milliy restoranni ochish arafasida edi. Ular alohida kiyim tiktirish o‘rniga, bizning tavsiyamiz bilan tayyor premium qora polo va fartuklarni tanlashdi. Barcha stol usti vositalari, nam salfetkalar va tish kovlagichlar oltin metall tusli uslubda brendlandi.',
+    story: 'Mijoz 140 o‘rinli yangi milliy restoranni ochish arafasida edi. Ular alohida kiyim tiktirish o‘rniga, bizning tavsiyamiz bilan tayyor premium qora polo va fartuklarni tanlashdi. Barcha stol usti vositalari, nam salfetkalar va tish kavlagichlar oltin metall tusli uslubda brendlandi.',
     realPhotoUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80',
-    realPhotoCaption: 'Premium qora mat sachet, tish kovlagich qutisi va oltin monogrammali stol muhiti',
+    realPhotoCaption: 'Premium qora mat sachet, tish kavlagich qutisi va oltin monogrammali stol muhiti',
     logoTheme: {
       name: 'SULTON SAROY',
       subtext: 'RESTAURANT & LOUNGE',
@@ -296,7 +296,7 @@ export const PORTFOLIO_PROJECTS: PortfolioProject[] = [
     },
     brandedItems: [
       { title: 'Nam salfetka', itemType: 'wetwipe', detail: 'Mat qora o‘ram + Oltin folga tushirilgan sharqona naqsh', technique: 'Fleksografiya + Folga' },
-      { title: 'Tish kovlagich', itemType: 'toothpick', detail: 'Zich qora karton quti, tillarang gerb', technique: 'UV-lak va shtamp' },
+      { title: 'Tish kavlagich', itemType: 'toothpick', detail: 'Zich qora karton quti, tillarang gerb', technique: 'UV-lak va shtamp' },
       { title: 'Ofitsiant fartugi', itemType: 'apron', detail: 'Espresso rangli kanvas fartuk, oltin ipli gerb', technique: 'Zich kompyuter kashtasi' },
       { title: 'Administrator polosi', itemType: 'polo', detail: 'Qora piqué paxta polo, ko‘krak qismida nafis gerb', technique: 'Kashta' },
       { title: 'Milliy do‘ppi', itemType: 'cap', detail: 'Qora baxmal do‘ppi hoshiyasida yashirin brending', technique: 'Kashta' }
@@ -321,7 +321,7 @@ export const PORTFOLIO_PROJECTS: PortfolioProject[] = [
     },
     brandedItems: [
       { title: 'Nam salfetka', itemType: 'wetwipe', detail: 'Eko-bej mat qadoq, qahva donasi silueti', technique: 'Raqamli flekso' },
-      { title: 'Tish kovlagich qutisi', itemType: 'toothpick', detail: 'Kraft quticha, minimalist qora bosma', technique: 'Ofset bosma' },
+      { title: 'Tish kavlagich qutisi', itemType: 'toothpick', detail: 'Kraft quticha, minimalist qora bosma', technique: 'Ofset bosma' },
       { title: 'Barista fartugi', itemType: 'apron', detail: 'Xaki rangli kanvas, charm tasmali, kashta logo', technique: 'Zich kashta' },
       { title: 'Kraft paket', itemType: 'packaging', detail: 'Kruassan va bagetlar uchun qayta ishlangan eko-paket', technique: 'Shelkografiya' }
     ]
@@ -466,7 +466,7 @@ export const BRANDING_JOURNEY = [
   { step: '02', title: 'Brend ranglari va uslubi', desc: 'Matolar, qadoqlar va iplar uchun yagona rang palitrasi (Pantone / CMYK) belgilanadi.' },
   { step: '03', title: 'Xodimlar formasi', desc: 'Tayyor polo, ko‘ylak va fartuklarga kashta yoki termobosma usulida logo tushiriladi.' },
   { step: '04', title: 'Nam salfetkalar', desc: 'Restoran mehmonga uzatadigan xushbo‘y salfetka dizayni va qadog‘i chop etiladi.' },
-  { step: '05', title: 'Tish kovlagich qutilari', desc: 'Stol usti uchun ixcham, toza va estetik qutichalar brendlanadi.' },
+  { step: '05', title: 'Tish kavlagich qutilari', desc: 'Stol usti uchun ixcham, toza va estetik qutichalar brendlanadi.' },
   { step: '06', title: 'Qadoqlash vositalari', desc: 'Olib ketish va yetkazib berish kraft paketlari, stiker va qutilar tayyorlanadi.' },
   { step: '07', title: 'To‘liq brendlangan mijoz tajribasi', desc: 'Mijoz eshikdan kirgan paytdan boshlab brendingizni his qilsin.' }
 ];
@@ -488,13 +488,13 @@ export const FAQ_DATA: FAQItem[] = [
     category: 'Stol usti'
   },
   {
-    question: '4. Tish kovlagich qutilarini ham brendlash mumkinmi?',
-    answer: 'Ha. Stol ustida doimiy turadigan tish kovlagich qutilari mijoz diqqatini tortadigan muhim elementdir. Biz qutilarning barcha taraflariga sizning korporativ ranglaringiz, logotipingiz va milliy yoki zamonaviy naqshlarni bosib beramiz.',
+    question: '4. Tish kavlagich qutilarini ham brendlash mumkinmi?',
+    answer: 'Ha. Stol ustida doimiy turadigan tish kavlagich qutilari mijoz diqqatini tortadigan muhim elementdir. Biz qutilarning barcha taraflariga sizning korporativ ranglaringiz, logotipingiz va milliy yoki zamonaviy naqshlarni bosib beramiz.',
     category: 'Stol usti'
   },
   {
     question: '5. Minimal buyurtma miqdori qancha?',
-    answer: 'Mahsulot turiga qarab farq qiladi: Tayyor kiyimlar va fartuklar uchun minimal miqdor atigi 5-10 donadan boshlanadi. Stol usti tish kovlagich qutilari uchun 500 donadan, individual qadoqlangan nam salfetkalar uchun esa 1,000 donadan buyurtma qabul qilinadi.',
+    answer: 'Mahsulot turiga qarab farq qiladi: Tayyor kiyimlar va fartuklar uchun minimal miqdor atigi 5-10 donadan boshlanadi. Stol usti tish kavlagich qutilari uchun 500 donadan, individual qadoqlangan nam salfetkalar uchun esa 1,000 donadan buyurtma qabul qilinadi.',
     category: 'Buyurtma shartlari'
   },
   {
@@ -504,7 +504,7 @@ export const FAQ_DATA: FAQItem[] = [
   },
   {
     question: '7. Yangi restoran uchun to‘liq brending xizmatini taklif qilasizmi?',
-    answer: 'Ha! Yangi ochilayotgan restoran va kafelar uchun to‘liq yagona brending yechimini taqdim etamiz. Ofitsiant va oshpaz kiyimlaridan tortib, nam salfetkalar, tish kovlagich qutilari, hisob papkalari va takeaway paketlarigacha barcha elementlar bitta uslubda, har bir buyurtma miqdori va mato talabiga ko‘ra individual hisoblab tayyorlab beriladi.',
+    answer: 'Ha! Yangi ochilayotgan restoran va kafelar uchun to‘liq yagona brending yechimini taqdim etamiz. Ofitsiant va oshpaz kiyimlaridan tortib, nam salfetkalar, tish kavlagich qutilari, hisob papkalari va takeaway paketlarigacha barcha elementlar bitta uslubda, har bir buyurtma miqdori va mato talabiga ko‘ra individual hisoblab tayyorlab beriladi.',
     category: 'Brending'
   },
   {

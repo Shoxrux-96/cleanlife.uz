@@ -16,7 +16,7 @@ export const calcUz = {
     techFolga: 'Oltin/Kumush Folga',
     techFolgaDesc: 'Salfetka, papka va karton',
     techUv: 'Selektiv UV Lak',
-    techUvDesc: 'Tish kovlagich va qutilar',
+    techUvDesc: 'Tish kavlagich va qutilar',
     colorsA: 'Ranglar soni / Logotip murakkabligi:',
     colorsB: 'ta rang',
     colorUnit: 'rang',
