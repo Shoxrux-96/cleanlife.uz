@@ -12,6 +12,9 @@
     <meta name="author" content="Clean Life" />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://cleanlife.uz/" />
+    <link rel="alternate" hreflang="uz" href="https://cleanlife.uz/" />
+    <link rel="alternate" hreflang="ru" href="https://cleanlife.uz/?lang=ru" />
+    <link rel="alternate" hreflang="x-default" href="https://cleanlife.uz/" />
     <meta name="theme-color" content="#121110" />
     <meta name="geo.region" content="UZ-TK" />
     <meta name="geo.placename" content="Toshkent" />
@@ -44,14 +47,59 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "Organization",
+      "@type": "LocalBusiness",
+      "@id": "https://cleanlife.uz/#business",
       "name": "Clean Life",
+      "alternateName": "Clean Life Group",
       "url": "https://cleanlife.uz/",
+      "logo": "https://cleanlife.uz/clean-life-logo-round.jpg",
+      "image": "https://cleanlife.uz/clean-life-logo.jpg",
       "slogan": "HoReCa Brending va Logo Joylashtirish",
+      "description": "Clean Life — HoReCa va biznes uchun professional brending xizmati: korporativ kiyim, nam salfetka, qadoqlash va aksessuarlarga logo joylashtirish. Toshkent, O'zbekiston.",
+      "telephone": "+998999608080",
+      "priceRange": "$$",
       "address": {
         "@type": "PostalAddress",
+        "streetAddress": "Showot Tumani",
         "addressLocality": "Toshkent",
+        "addressRegion": "UZ-TK",
+        "postalCode": "100000",
         "addressCountry": "UZ"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 41.3111,
+        "longitude": 69.2797
+      },
+      "openingHoursSpecification": [{
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+        "opens": "09:00",
+        "closes": "19:00"
+      }],
+      "sameAs": [
+        "https://cleanlife.uz/"
+      ],
+      "areaServed": {"@type": "Country", "name": "Uzbekistan"},
+      "makesOffer": [
+        {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Korporativ kiyim brendlash"}},
+        {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Nam salfetka brending"}},
+        {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Qadoqlash va aksessuar brendi"}},
+        {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Logotip kashta va DTF bosma"}}
+      ]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "url": "https://cleanlife.uz/",
+      "name": "Clean Life",
+      "inLanguage": ["uz", "ru"],
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://cleanlife.uz/?s={search_term_string}",
+        "query-input": "required name=search_term_string"
       }
     }
     </script>

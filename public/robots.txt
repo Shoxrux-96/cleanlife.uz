@@ -2,5 +2,27 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /admin/
+Disallow: /dashboard
+Disallow: /dashboard/
+
+# Allow major search engine bots full access to public content
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /dashboard
+
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /dashboard
+
+User-agent: YandexBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /dashboard
 
 Sitemap: https://cleanlife.uz/sitemap.xml
+Host: https://cleanlife.uz
