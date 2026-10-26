@@ -54,10 +54,10 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote }) => {
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-b from-[#C59B27]/10 via-[#C59B27]/5 to-transparent blur-[140px] pointer-events-none rounded-full" />
       <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[#3B2D1F]/20 blur-[120px] pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10 pt-4 sm:pt-6">
-        {/* Headline + description */}
-        <div className="text-center max-w-4xl mx-auto mb-10">
-          <h1 className="font-serif-luxury text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight text-[#1A1715] dark:text-[#FAF7F2] leading-[1.08] mb-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10 pt-2 sm:pt-4">
+        {/* Headline + description — markazlashtirilgan, 8px tepaga surilgan, +20px ikki tomonga kengroq */}
+        <div className="text-center mx-auto mb-10" style={{ maxWidth: 'calc(56rem + 40px)' }}>
+          <h1 className="font-serif-luxury text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight text-[#1A1715] dark:text-[#FAF7F2] leading-[1.08] mb-6 mx-auto" style={{ maxWidth: 'calc(56rem + 40px)' }}>
             {t.hero.titleA}{' '}
             <span className="italic font-normal text-[#E8C872] relative inline-block">
               {t.hero.titleB}
@@ -65,7 +65,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote }) => {
             </span>{' '}
             {t.hero.titleC}
           </h1>
-          <p className="text-base sm:text-lg md:text-xl text-[#5C554A] dark:text-[#BDB5A8] max-w-3xl mx-auto font-light leading-relaxed">
+          <p className="text-base sm:text-lg md:text-xl text-[#5C554A] dark:text-[#BDB5A8] mx-auto font-light leading-relaxed" style={{ maxWidth: 'calc(48rem + 40px)' }}>
             {t.hero.desc}
           </p>
         </div>
