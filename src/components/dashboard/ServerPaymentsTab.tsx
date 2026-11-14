@@ -253,32 +253,47 @@ export const ServerPaymentsTab: React.FC = () => {
             <h4 className="font-bold text-sm text-stone-900 dark:text-stone-100">{editingId ? "To'lovni tahrirlash" : "Yangi to'lov qo'shish"}</h4>
             <button onClick={() => { setShowForm(false); setEditingId(null); }} className="text-xs text-stone-500 hover:text-stone-700">Yopish</button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <Field label="Davr (oy) — YYYY-MM"><input value={form.period} onChange={(e) => setForm({ ...form, period: e.target.value })} placeholder="2026-11" className={inputCls}/></Field>
-            <div className="md:col-span-2">
+          <div className="grid grid-cols-12 gap-3">
+            <div className="col-span-12 md:col-span-6">
+              <Field label="Davr (oy) — YYYY-MM"><input value={form.period} onChange={(e) => setForm({ ...form, period: e.target.value })} placeholder="2026-11" className={inputCls}/></Field>
+            </div>
+            <div className="col-span-12 md:col-span-6">
+              <Field label="To'lov sanasi"><input type="date" value={form.paid_at} onChange={(e) => setForm({ ...form, paid_at: e.target.value, next_due_date: form.next_due_date || autoNextDue(e.target.value) })} className={inputCls}/></Field>
+            </div>
+
+            {/* Summa — keng input, valyuta — kichik alohida field */}
+            <div className="col-span-8 md:col-span-9">
               <Field label="Summa">
-                <div className="flex gap-2">
-                  <input
-                    value={form.amount}
-                    onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                    placeholder="50.00"
-                    inputMode="decimal"
-                    className={inputCls + ' flex-1 min-w-0 text-lg font-semibold tracking-wide py-3'}
-                  />
-                  <select
-                    value={form.currency}
-                    onChange={(e) => setForm({ ...form, currency: e.target.value })}
-                    className={inputCls + ' w-24 shrink-0'}
-                  >
-                    <option>USD</option><option>UZS</option><option>EUR</option>
-                  </select>
-                </div>
+                <input
+                  value={form.amount}
+                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                  placeholder="50.00"
+                  inputMode="decimal"
+                  className={inputCls + ' w-full text-lg font-semibold tracking-wide py-3'}
+                />
               </Field>
             </div>
-            <Field label="To'lov sanasi"><input type="date" value={form.paid_at} onChange={(e) => setForm({ ...form, paid_at: e.target.value, next_due_date: form.next_due_date || autoNextDue(e.target.value) })} className={inputCls}/></Field>
-            <Field label="Keyingi to'lov muddati"><input type="date" value={form.next_due_date} onChange={(e) => setForm({ ...form, next_due_date: e.target.value })} className={inputCls}/></Field>
-            <Field label="Provider"><select value={form.provider} onChange={(e) => onProviderChange(e.target.value)} className={inputCls}>{PROVIDERS.map((p) => <option key={p.v} value={p.v}>{p.l}</option>)}</select></Field>
-            <Field label="To'lov sahifasi (URL)"><input value={form.payment_url} onChange={(e) => setForm({ ...form, payment_url: e.target.value })} placeholder="https://..." className={inputCls}/></Field>
+            <div className="col-span-4 md:col-span-3">
+              <Field label="Valyuta">
+                <select
+                  value={form.currency}
+                  onChange={(e) => setForm({ ...form, currency: e.target.value })}
+                  className={inputCls + ' w-full py-3 text-lg font-semibold'}
+                >
+                  <option>USD</option><option>UZS</option><option>EUR</option>
+                </select>
+              </Field>
+            </div>
+
+            <div className="col-span-12 md:col-span-6">
+              <Field label="Keyingi to'lov muddati"><input type="date" value={form.next_due_date} onChange={(e) => setForm({ ...form, next_due_date: e.target.value })} className={inputCls}/></Field>
+            </div>
+            <div className="col-span-12 md:col-span-6">
+              <Field label="Provider"><select value={form.provider} onChange={(e) => onProviderChange(e.target.value)} className={inputCls}>{PROVIDERS.map((p) => <option key={p.v} value={p.v}>{p.l}</option>)}</select></Field>
+            </div>
+            <div className="col-span-12">
+              <Field label="To'lov sahifasi (URL)"><input value={form.payment_url} onChange={(e) => setForm({ ...form, payment_url: e.target.value })} placeholder="https://..." className={inputCls}/></Field>
+            </div>
           </div>
           <Field label="Izoh (ixtiyoriy)"><input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="VPS M-small, 1 oy" className={inputCls}/></Field>
           {error && <div className="text-xs text-red-600">{error}</div>}
