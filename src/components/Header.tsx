@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Menu, X, Phone, Send, Sparkles, ShieldCheck, 
-  Sun, Moon, LogIn, LayoutDashboard, Globe, ChevronDown, Check
+import {
+  Menu, X, Phone, Send, Sparkles, ShieldCheck,
+  Sun, Moon, LogIn, LayoutDashboard, Globe, ChevronDown, Check, Smartphone
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -151,6 +151,21 @@ export const Header: React.FC<HeaderProps> = ({
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
+
+            {/* Mobil ilova yuklab olish (APK) */}
+            <a
+              href="/apk/cleanlife-erp.apk"
+              download
+              className={`inline-flex items-center gap-2 px-3.5 py-2.5 rounded-lg border text-xs font-semibold tracking-wide transition-all cursor-pointer shadow-sm ${
+                theme === 'dark'
+                  ? 'bg-[#1E2B27] hover:bg-[#283D37] border-[#3B5B52] text-[#8AC9B6]'
+                  : 'bg-[#E8F3EE] hover:bg-[#D6EAE1] border-[#4FA68B]/40 text-[#3A7F6B]'
+              }`}
+              title="Mobil ilovani yuklab olish (APK)"
+            >
+              <Smartphone className="w-4 h-4" />
+              <span>Mobil ilova</span>
+            </a>
 
             {/* Login / Dashboard Button */}
             {isLoggedIn ? (
