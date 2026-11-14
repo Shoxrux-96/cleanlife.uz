@@ -253,57 +253,59 @@ export const ServerPaymentsTab: React.FC = () => {
             <h4 className="font-bold text-sm text-stone-900 dark:text-stone-100">{editingId ? "To'lovni tahrirlash" : "Yangi to'lov qo'shish"}</h4>
             <button onClick={() => { setShowForm(false); setEditingId(null); }} className="text-xs text-stone-500 hover:text-stone-700">Yopish</button>
           </div>
-          <div className="grid grid-cols-12 gap-3">
-            <div className="col-span-12 md:col-span-6">
-              <Field label="Davr (oy) — YYYY-MM"><input value={form.period} onChange={(e) => setForm({ ...form, period: e.target.value })} placeholder="2026-11" className={inputCls}/></Field>
-            </div>
-            <div className="col-span-12 md:col-span-6">
-              <Field label="To'lov sanasi"><input type="date" value={form.paid_at} onChange={(e) => setForm({ ...form, paid_at: e.target.value, next_due_date: form.next_due_date || autoNextDue(e.target.value) })} className={inputCls}/></Field>
-            </div>
+          {/* 3 ta ustun, 3 ta qator — oxirgi uyada Saqlash tugma */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* 1-qator: sanalar */}
+            <Field label="Davr (oy) — YYYY-MM">
+              <input value={form.period} onChange={(e) => setForm({ ...form, period: e.target.value })} placeholder="2026-11" className={inputCls}/>
+            </Field>
+            <Field label="To'lov sanasi">
+              <input type="date" value={form.paid_at} onChange={(e) => setForm({ ...form, paid_at: e.target.value, next_due_date: form.next_due_date || autoNextDue(e.target.value) })} className={inputCls}/>
+            </Field>
+            <Field label="Keyingi to'lov muddati">
+              <input type="date" value={form.next_due_date} onChange={(e) => setForm({ ...form, next_due_date: e.target.value })} className={inputCls}/>
+            </Field>
 
-            {/* Summa — keng input, valyuta — kichik alohida field */}
-            <div className="col-span-8 md:col-span-9">
-              <Field label="Summa">
-                <input
-                  value={form.amount}
-                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                  placeholder="50.00"
-                  inputMode="decimal"
-                  className={inputCls + ' w-full text-lg font-semibold tracking-wide py-3'}
-                />
-              </Field>
-            </div>
-            <div className="col-span-4 md:col-span-3">
-              <Field label="Valyuta">
-                <select
-                  value={form.currency}
-                  onChange={(e) => setForm({ ...form, currency: e.target.value })}
-                  className={inputCls + ' w-full py-3 text-lg font-semibold'}
-                >
-                  <option>USD</option><option>UZS</option><option>EUR</option>
-                </select>
-              </Field>
-            </div>
+            {/* 2-qator: summa/valyuta/provider */}
+            <Field label="Summa">
+              <input
+                value={form.amount}
+                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                placeholder="50.00"
+                inputMode="decimal"
+                className={inputCls + ' w-full text-lg font-semibold tracking-wide py-3'}
+              />
+            </Field>
+            <Field label="Valyuta">
+              <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} className={inputCls + ' w-full py-3 text-lg font-semibold'}>
+                <option>USD</option><option>UZS</option><option>EUR</option>
+              </select>
+            </Field>
+            <Field label="Provider">
+              <select value={form.provider} onChange={(e) => onProviderChange(e.target.value)} className={inputCls}>
+                {PROVIDERS.map((p) => <option key={p.v} value={p.v}>{p.l}</option>)}
+              </select>
+            </Field>
 
-            <div className="col-span-12 md:col-span-6">
-              <Field label="Keyingi to'lov muddati"><input type="date" value={form.next_due_date} onChange={(e) => setForm({ ...form, next_due_date: e.target.value })} className={inputCls}/></Field>
-            </div>
-            <div className="col-span-12 md:col-span-6">
-              <Field label="Provider"><select value={form.provider} onChange={(e) => onProviderChange(e.target.value)} className={inputCls}>{PROVIDERS.map((p) => <option key={p.v} value={p.v}>{p.l}</option>)}</select></Field>
-            </div>
-            <div className="col-span-12">
-              <Field label="To'lov sahifasi (URL)"><input value={form.payment_url} onChange={(e) => setForm({ ...form, payment_url: e.target.value })} placeholder="https://..." className={inputCls}/></Field>
+            {/* 3-qator: URL / Izoh / Saqlash */}
+            <Field label="To'lov sahifasi (URL)">
+              <input value={form.payment_url} onChange={(e) => setForm({ ...form, payment_url: e.target.value })} placeholder="https://..." className={inputCls}/>
+            </Field>
+            <Field label="Izoh (ixtiyoriy)">
+              <input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="VPS M-small" className={inputCls}/>
+            </Field>
+            <div className="flex flex-col justify-end">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1 opacity-0 select-none">·</label>
+              <button
+                onClick={submit}
+                disabled={saving}
+                className="w-full px-4 py-2.5 rounded-lg bg-emerald-600 text-white font-bold text-sm disabled:opacity-50 hover:bg-emerald-700 transition-colors shadow-sm"
+              >
+                {saving ? 'Saqlanmoqda...' : editingId ? 'Yangilash' : 'Saqlash'}
+              </button>
             </div>
           </div>
-          <Field label="Izoh (ixtiyoriy)"><input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="VPS M-small, 1 oy" className={inputCls}/></Field>
           {error && <div className="text-xs text-red-600">{error}</div>}
-          <button
-            onClick={submit}
-            disabled={saving}
-            className="w-full py-2.5 rounded-lg bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 font-bold text-sm disabled:opacity-50 hover:opacity-90 transition-opacity"
-          >
-            {saving ? 'Saqlanmoqda...' : editingId ? 'Yangilash' : 'Saqlash'}
-          </button>
         </div>
       )}
 
