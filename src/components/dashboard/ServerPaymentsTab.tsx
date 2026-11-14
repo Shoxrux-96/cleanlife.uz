@@ -255,14 +255,26 @@ export const ServerPaymentsTab: React.FC = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Field label="Davr (oy) — YYYY-MM"><input value={form.period} onChange={(e) => setForm({ ...form, period: e.target.value })} placeholder="2026-11" className={inputCls}/></Field>
-            <Field label="Summa">
-              <div className="flex gap-2">
-                <input value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="50.00" className={inputCls + ' flex-1'}/>
-                <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} className={inputCls + ' w-20'}>
-                  <option>USD</option><option>UZS</option><option>EUR</option>
-                </select>
-              </div>
-            </Field>
+            <div className="md:col-span-2">
+              <Field label="Summa">
+                <div className="flex gap-2">
+                  <input
+                    value={form.amount}
+                    onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                    placeholder="50.00"
+                    inputMode="decimal"
+                    className={inputCls + ' flex-1 min-w-0 text-lg font-semibold tracking-wide py-3'}
+                  />
+                  <select
+                    value={form.currency}
+                    onChange={(e) => setForm({ ...form, currency: e.target.value })}
+                    className={inputCls + ' w-24 shrink-0'}
+                  >
+                    <option>USD</option><option>UZS</option><option>EUR</option>
+                  </select>
+                </div>
+              </Field>
+            </div>
             <Field label="To'lov sanasi"><input type="date" value={form.paid_at} onChange={(e) => setForm({ ...form, paid_at: e.target.value, next_due_date: form.next_due_date || autoNextDue(e.target.value) })} className={inputCls}/></Field>
             <Field label="Keyingi to'lov muddati"><input type="date" value={form.next_due_date} onChange={(e) => setForm({ ...form, next_due_date: e.target.value })} className={inputCls}/></Field>
             <Field label="Provider"><select value={form.provider} onChange={(e) => onProviderChange(e.target.value)} className={inputCls}>{PROVIDERS.map((p) => <option key={p.v} value={p.v}>{p.l}</option>)}</select></Field>
