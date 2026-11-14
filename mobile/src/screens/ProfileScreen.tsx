@@ -119,10 +119,12 @@ export const ProfileScreen: React.FC = () => {
   const { session, logout } = useAuth();
   const role = useAppRole();
 
-  if (role === 'staff' || role === 'driver') {
-    return <StaffProfile session={session} logout={logout} />;
+  // Faqat admin → korxona + admin profili; qolgan barcha xodimlar (manager/driver/basic)
+  // o'z shaxsiy xodim profilini ko'radi — lavozim, telefon, maosh va h.k.
+  if (role === 'admin') {
+    return <AdminProfile />;
   }
-  return <AdminProfile />;
+  return <StaffProfile session={session} logout={logout} />;
 };
 
 const AdminProfile: React.FC = () => {
@@ -387,7 +389,7 @@ const AdminProfile: React.FC = () => {
             </>
           ) : (
             <>
-              <InfoRow icon="🏷️" label="Nomi" value={form.name} tint="#D4AF37" />
+              <InfoRow icon="🏷️" label="Nomi" value={form.name} tint="#8AC9B6" />
               <InfoRow icon="💬" label="Slogan" value={form.slogan} tint="#64B5F6" />
             </>
           )}
@@ -430,7 +432,7 @@ const AdminProfile: React.FC = () => {
           ) : (
             <>
               <InfoRow icon="🌆" label="Shahar / Hudud" value={form.location} tint="#F59E0B" />
-              <InfoRow icon="🏠" label="Toʻliq manzil" value={form.address} tint="#D4AF37" />
+              <InfoRow icon="🏠" label="Toʻliq manzil" value={form.address} tint="#8AC9B6" />
               {hasCoords ? (
                 <View style={s.coordsRow}>
                   <View style={s.coordBox}>
@@ -464,7 +466,7 @@ const AdminProfile: React.FC = () => {
           ) : (
             <>
               <InfoRow icon="🧑‍💼" label="F.I.SH" value={form.admin_name} tint="#A78BFA" />
-              <InfoRow icon="🔑" label="Login" value={form.admin_login} tint="#D4AF37" />
+              <InfoRow icon="🔑" label="Login" value={form.admin_login} tint="#8AC9B6" />
               <InfoRow icon="🏆" label="Unvon" value={form.admin_title} tint="#F59E0B" />
               <InfoRow icon="💼" label="Lavozim" value={form.admin_position} tint="#64B5F6" />
               <InfoRow icon="🧭" label="Rol" value={form.admin_role} tint="#22D3EE" />
@@ -525,7 +527,7 @@ const staffMakeStyles = (c: Palette) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    avatarText: { color: '#1A1715', fontSize: 46, fontWeight: '900' },
+    avatarText: { color: '#1D2A27', fontSize: 46, fontWeight: '900' },
     avatarImage: { width: 118, height: 118, borderRadius: 59 },
     statusDot: {
       position: 'absolute',
@@ -1016,7 +1018,7 @@ const StaffProfile: React.FC<{
             </>
           ) : (
             <>
-              <InfoRow icon="🪪" label="Ism va familiya" value={String(rec?.full_name || employeeName)} tint="#D4AF37" />
+              <InfoRow icon="🪪" label="Ism va familiya" value={String(rec?.full_name || employeeName)} tint="#8AC9B6" />
               <InfoRow icon="💼" label="Lavozim" value={String(rec?.position || '—')} tint="#64B5F6" />
               <InfoRow icon="📱" label="Telefon" value={String(rec?.phone || '—')} tint="#34D399" />
               <InfoRow icon="🔑" label="Login" value={String(rec?.username || '—')} tint="#A78BFA" />
@@ -1080,7 +1082,7 @@ const makeStyles = (c: Palette) =>
       shadowOffset: { width: 0, height: 4 },
       elevation: 8,
     },
-    logoText: { color: '#1A1715', fontSize: 52, fontWeight: '900' },
+    logoText: { color: '#1D2A27', fontSize: 52, fontWeight: '900' },
     companyName: {
       color: c.text,
       fontSize: 24,

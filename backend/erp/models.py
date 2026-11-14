@@ -187,13 +187,17 @@ class Employee(models.Model):
     join_date = models.DateField()
     avatar_color = models.CharField(max_length=100, blank=True, null=True)
     avatar = models.TextField(blank=True, null=True)  # 3x4 rasm (base64 DataURL)
-    username = models.CharField(max_length=150, blank=True, default='')  # Tizimga kirish logini
+    username = models.CharField(max_length=150, blank=True, default='', db_index=True)  # Tizimga kirish logini
     password = models.CharField(max_length=255, blank=True, default='')  # Tizimga kirish paroli
     webauthn_credential = models.TextField(blank=True, null=True)  # Face ID (WebAuthn) kredentsiali (JSON)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-id']
+        indexes = [
+            models.Index(fields=['status']),
+            models.Index(fields=['position']),
+        ]
 
     def __str__(self):
         return self.full_name
@@ -524,10 +528,11 @@ class SiteBeforeAfter(models.Model):
 
 class AuthToken(models.Model):
     """Login natijasi: har bir mijoz uchun kriptografik token.
-    30 kun yashaydi, keyin o'chadi. Mijoz Authorization: Token <key> bilan yuboradi.
+    Yashash muddati rolga bog'liq (qarang: auth_backend.TOKEN_TTL_BY_ROLE).
+    Mijoz Authorization: Token <key> bilan yuboradi.
     """
     key = models.CharField(max_length=64, unique=True, db_index=True)
-    role = models.CharField(max_length=16)  # admin | staff | driver
+    role = models.CharField(max_length=16)  # admin | manager | driver | basic
     name = models.CharField(max_length=255, blank=True)
     employee_id = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

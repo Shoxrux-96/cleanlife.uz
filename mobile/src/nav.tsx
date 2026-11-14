@@ -28,11 +28,17 @@ import { HrHubScreen } from './screens/admin/HrHubScreen';
 import { EmployeesScreen } from './screens/admin/EmployeesScreen';
 import { PayrollScreen } from './screens/admin/PayrollScreen';
 import { BonusesScreen } from './screens/admin/BonusesScreen';
+import { ManagementHubScreen } from './screens/admin/ManagementHubScreen';
+import { ReportsScreen } from './screens/admin/ReportsScreen';
+import { MessagesScreen } from './screens/admin/MessagesScreen';
+import { SiteContentScreen } from './screens/admin/SiteContentScreen';
 
 // Xodim
 import { StaffHomeScreen } from './screens/staff/StaffHomeScreen';
 import { CheckinScreen } from './screens/staff/CheckinScreen';
 import { StatsScreen } from './screens/staff/StatsScreen';
+import { MyPayrollScreen } from './screens/staff/MyPayrollScreen';
+import { MyBonusesScreen } from './screens/staff/MyBonusesScreen';
 
 // Haydovchi
 import { DriverHomeScreen } from './screens/driver/DriverHomeScreen';
@@ -127,11 +133,17 @@ const useTabHeaderOpts = () => {
   };
 };
 
+// Rolga qarab Home: admin → to'liq dashboard, oddiy xodim → shaxsiy ma'lumotlar
+const RoleAwareHome: React.FC = () => {
+  const role = useAppRole();
+  return role === 'admin' ? <HomeScreen /> : <StaffHomeScreen />;
+};
+
 const HomeStack: React.FC = () => {
   const opts = useStackHeaderOpts();
   return (
     <Stack.Navigator screenOptions={opts}>
-      <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Asosiy sahifa' }} />
+      <Stack.Screen name="Home" component={RoleAwareHome} options={{ title: 'Asosiy sahifa' }} />
       <Stack.Screen name="Clients" component={ClientsScreen} options={{ title: 'Mijozlar Bazasi' }} />
       <Stack.Screen name="Orders" component={OrdersScreen} options={{ title: 'Buyurtmalar' }} />
       <Stack.Screen name="Waybills" component={WaybillsScreen} options={{ title: 'Yuk Xatlari' }} />
@@ -171,34 +183,58 @@ const ProductionStack: React.FC = () => {
   );
 };
 
+const ManagementStack: React.FC = () => {
+  const opts = useStackHeaderOpts();
+  return (
+    <Stack.Navigator screenOptions={opts}>
+      <Stack.Screen name="ManagementHub" component={ManagementHubScreen} options={{ title: 'Boshqaruv' }} />
+      <Stack.Screen name="Clients" component={ClientsScreen} options={{ title: 'Mijozlar' }} />
+      <Stack.Screen name="Orders" component={OrdersScreen} options={{ title: 'Buyurtmalar' }} />
+      <Stack.Screen name="Waybills" component={WaybillsScreen} options={{ title: 'Yuk xatlari' }} />
+      <Stack.Screen name="Deliveries" component={DeliveriesScreen} options={{ title: 'Yetkazish' }} />
+      <Stack.Screen name="Finance" component={FinanceScreen} options={{ title: 'Moliya' }} />
+      <Stack.Screen name="Reports" component={ReportsScreen} options={{ title: 'Hisobotlar' }} />
+      <Stack.Screen name="SiteContent" component={SiteContentScreen} options={{ title: 'Sayt kontenti' }} />
+      <Stack.Screen name="Messages" component={MessagesScreen} options={{ title: 'Xabarlar' }} />
+    </Stack.Navigator>
+  );
+};
+
 const HrStack: React.FC = () => {
   const opts = useStackHeaderOpts();
   return (
     <Stack.Navigator screenOptions={opts}>
       <Stack.Screen name="HrHub" component={HrHubScreen} options={{ title: "HR bo'limi" }} />
+      {/* Admin uchun — barcha xodimlar bo'yicha */}
       <Stack.Screen name="Employees" component={EmployeesScreen} options={{ title: 'Xodimlar' }} />
       <Stack.Screen name="Payroll" component={PayrollScreen} options={{ title: 'Ish haqi' }} />
       <Stack.Screen name="Bonuses" component={BonusesScreen} options={{ title: 'Bonuslar' }} />
+      {/* Non-admin xodim uchun — faqat shaxsiy */}
+      <Stack.Screen name="MyPayroll" component={MyPayrollScreen} options={{ title: 'Mening maoshim' }} />
+      <Stack.Screen name="MyBonuses" component={MyBonusesScreen} options={{ title: 'Mening bonuslarim' }} />
+      <Stack.Screen name="Checkin" component={CheckinScreen} options={{ title: 'Face ID kirish' }} />
+      <Stack.Screen name="Stats" component={StatsScreen} options={{ title: 'Davomat tarixi' }} />
     </Stack.Navigator>
   );
 };
 
 const TabIcon = (glyph: string, gold: string) => {
   const Icon = ({ focused }: { focused: boolean }) => (
-  <View
-    style={{
-      width: 36,
-      height: 36,
-      borderRadius: 10,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: focused ? gold + '22' : 'transparent',
-      borderWidth: focused ? 1 : 0,
-      borderColor: gold + '55',
-    }}
-  >
-    <Text style={{ fontSize: 18 }}>{glyph}</Text>
-  </View>
+    <View
+      style={{
+        width: 42,
+        height: 32,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: focused ? gold + '2A' : 'transparent',
+        borderWidth: focused ? 1 : 0,
+        borderColor: gold + '66',
+        transform: [{ scale: focused ? 1.05 : 1 }],
+      }}
+    >
+      <Text style={{ fontSize: focused ? 19 : 17 }}>{glyph}</Text>
+    </View>
   );
   return Icon;
 };
@@ -206,10 +242,14 @@ const TabIcon = (glyph: string, gold: string) => {
 const AdminTabs: React.FC = () => {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
+  const role = useAppRole();
   // Har bir telefonga moslashuvchi: 3-tugmali Android nav / gesture nav / iOS home indicator
   // uchun pastdagi xavfsiz zona (insets.bottom) + 60px foydali balandlik.
   const BASE = 60;
   const BOTTOM = Math.max(insets.bottom, 10); // minimal 10 — kichik telefonlar uchun ham qulay
+  // "Boshqaruv" tab — faqat non-admin xodimlar uchun (manager/driver/basic).
+  // Admin uni ko'rmaydi (admin veb-sayt orqali to'liq boshqaradi).
+  const showManagement = role !== 'admin';
   return (
     <Tab.Navigator
       screenOptions={{
@@ -231,6 +271,13 @@ const AdminTabs: React.FC = () => {
         component={HomeStack}
         options={{ tabBarLabel: 'Asosiy', tabBarIcon: TabIcon('🏠', colors.gold) }}
       />
+      {showManagement ? (
+        <Tab.Screen
+          name="ManagementTab"
+          component={ManagementStack}
+          options={{ tabBarLabel: 'Boshqaruv', tabBarIcon: TabIcon('🗂️', colors.gold) }}
+        />
+      ) : null}
       <Tab.Screen
         name="ProductionTab"
         component={ProductionStack}
@@ -243,8 +290,17 @@ const AdminTabs: React.FC = () => {
       />
       <Tab.Screen
         name="ProfileTab"
-        component={ProfileStack}
-        options={{ tabBarLabel: 'Profil', tabBarIcon: TabIcon('👤', colors.gold) }}
+        component={ProfileScreen}
+        options={{
+          tabBarLabel: 'Profil',
+          tabBarIcon: TabIcon('👤', colors.gold),
+          // Boshqa rollar bilan bir xil bo'lishi uchun ProfileScreen to'g'ridan-to'g'ri
+          // ishlatiladi — Stack wrapper bo'lmasin (header ichkarida o'zi boshqariladi).
+          headerShown: true,
+          headerStyle: { backgroundColor: colors.card },
+          headerTintColor: colors.gold,
+          headerTitle: 'Profil',
+        }}
       />
     </Tab.Navigator>
   );
@@ -283,12 +339,22 @@ const StaffTabs: React.FC = () => {
         }}
       />
       <Tab.Screen
+        name="StaffManagement"
+        component={ManagementStack}
+        options={{
+          headerShown: false,
+          tabBarLabel: 'Boshqaruv',
+          tabBarIcon: TabIcon('🗂️', colors.gold),
+        }}
+      />
+      <Tab.Screen
         name="Checkin"
         component={CheckinScreen}
         options={{
           title: 'Face ID',
           tabBarLabel: 'Face ID',
-          tabBarIcon: TabIcon('👁️', colors.gold),
+          tabBarIcon: () => null,
+          tabBarLabelStyle: { fontSize: 13, fontWeight: '800' },
         }}
       />
       <Tab.Screen
@@ -364,6 +430,15 @@ const DriverTabs: React.FC = () => {
         }}
       />
       <Tab.Screen
+        name="DriverManagement"
+        component={ManagementStack}
+        options={{
+          headerShown: false,
+          tabBarLabel: 'Boshqaruv',
+          tabBarIcon: TabIcon('🗂️', colors.gold),
+        }}
+      />
+      <Tab.Screen
         name="Profile"
         component={ProfileScreen}
         options={{
@@ -418,8 +493,14 @@ export const RootNavigator: React.FC = () => {
     );
   }
 
+  // 4 ta UI marshruti:
+  //   admin / manager → AdminTabs (to'liq boshqaruv; HR faqat admin uchun yoziladi)
+  //   driver → DriverTabs
+  //   basic  → StaffTabs (faqat o'ziga xizmat)
   const Target =
-    role === 'admin' ? AdminTabs : role === 'driver' ? DriverTabs : StaffTabs;
+    role === 'driver' ? DriverTabs :
+    role === 'basic'  ? StaffTabs  :
+                        AdminTabs;
 
   return (
     <NavigationContainer theme={navTheme}>

@@ -1,6 +1,11 @@
 import { API_BASE } from './config';
 
-export type Role = 'admin' | 'staff' | 'driver';
+// Server rollari:
+//  admin   — bosh admin, hamma yerda to'liq boshqaruv
+//  manager — boshqaruv (Operator, Ishchi, Boshqaruvchi va h.k.); HR faqat ko'rish
+//  driver  — haydovchi
+//  basic   — elektrik/oshpaz/qarovul: faqat o'ziga xizmat
+export type Role = 'admin' | 'manager' | 'driver' | 'basic';
 
 export interface LoginResult {
   role: Role;

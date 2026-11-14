@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { api } from '../../api';
+import { useCanAdminWrite } from '../../auth';
 import { Btn, Loader, Muted, Screen } from '../../components';
 import { fmtMoney, Palette } from '../../theme';
 import { useAppTheme } from '../../theme-context';
@@ -264,6 +265,7 @@ const PERIOD_LABEL: Record<Period, string> = {
 export const BonusesScreen: React.FC = () => {
   const { colors } = useAppTheme();
   const s = useMemo(() => makeStyles(colors), [colors]);
+  const canEdit = useCanAdminWrite();
 
   const [bonuses, setBonuses] = useState<Rec[]>([]);
   const [employees, setEmployees] = useState<Rec[]>([]);
@@ -481,9 +483,11 @@ export const BonusesScreen: React.FC = () => {
               Xodimlar reja bajarishi, brak kamaytirishi, tashabbus uchun ustamalar
             </Muted>
           </View>
-          <TouchableOpacity style={s.addBtn} onPress={openCreate}>
-            <Text style={s.addBtnText}>🏆 Yangi Bonus</Text>
-          </TouchableOpacity>
+          {canEdit && (
+            <TouchableOpacity style={s.addBtn} onPress={openCreate}>
+              <Text style={s.addBtnText}>🏆 Yangi Bonus</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {error ? <Text style={s.error}>{error}</Text> : null}
@@ -606,25 +610,27 @@ export const BonusesScreen: React.FC = () => {
                   {str(b, 'notes')}
                 </Text>
               )}
-              <View style={s.actions}>
-                {str(b, 'status') !== 'tasdiqlangan' && (
-                  <TouchableOpacity
-                    style={[s.actBtn, { backgroundColor: colors.gold, borderColor: colors.gold }]}
-                    onPress={() => approve(b)}
-                  >
-                    <Text style={[s.actBtnText, { color: '#000' }]}>Tasdiqlash</Text>
+              {canEdit && (
+                <View style={s.actions}>
+                  {str(b, 'status') !== 'tasdiqlangan' && (
+                    <TouchableOpacity
+                      style={[s.actBtn, { backgroundColor: colors.gold, borderColor: colors.gold }]}
+                      onPress={() => approve(b)}
+                    >
+                      <Text style={[s.actBtnText, { color: '#000' }]}>Tasdiqlash</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity style={s.actBtn} onPress={() => openEdit(b)}>
+                    <Text style={[s.actBtnText, { color: colors.gold }]}>Tahrirlash</Text>
                   </TouchableOpacity>
-                )}
-                <TouchableOpacity style={s.actBtn} onPress={() => openEdit(b)}>
-                  <Text style={[s.actBtnText, { color: colors.gold }]}>Tahrirlash</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[s.actBtn, { borderColor: colors.red + '55' }]}
-                  onPress={() => confirmDelete(b)}
-                >
-                  <Text style={[s.actBtnText, { color: colors.red }]}>O'chirish</Text>
-                </TouchableOpacity>
-              </View>
+                  <TouchableOpacity
+                    style={[s.actBtn, { borderColor: colors.red + '55' }]}
+                    onPress={() => confirmDelete(b)}
+                  >
+                    <Text style={[s.actBtnText, { color: colors.red }]}>O'chirish</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           ))
         )}

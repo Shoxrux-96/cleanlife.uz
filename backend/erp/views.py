@@ -25,6 +25,8 @@ from .serializers import (
     RawMaterialSerializer, SiteBeforeAfterSerializer, SiteContactInfoSerializer,
     SitePortfolioProjectSerializer, WaybillTTNSerializer,
 )
+from .serializers import EmployeeListSerializer
+from .permissions import AdminWritesOnly
 
 WAYBILL_STATUS_TO_TRIP = {
     'kutilmoqda': 'kutilmoqda',
@@ -302,6 +304,25 @@ class EmployeeViewSet(EmployeeWebAuthnMixin, viewsets.ModelViewSet):
     serializer_class = EmployeeSerializer
     search_fields = ['full_name', 'position', 'phone']
     ordering_fields = ['salary', 'id']
+    permission_classes = [AdminWritesOnly]
+
+    def get_serializer_class(self):
+        # Ro'yxat uchun yengil (avatar'siz) serializer — mobil trafikni kamaytiradi.
+        if getattr(self, 'action', None) == 'list':
+            return EmployeeListSerializer
+        return EmployeeSerializer
+
+    def get_queryset(self):
+        qs = Employee.objects.all()
+        user = self.request.user
+        # Non-admin faqat o'z yozuvini ko'radi — WebAuthn/profile uchun kerak.
+        if getattr(user, 'role', None) != 'admin':
+            emp_id = getattr(user, 'employee_id', None)
+            if emp_id:
+                qs = qs.filter(pk=emp_id)
+            else:
+                qs = qs.none()
+        return qs
 
 
 class PayrollRecordViewSet(viewsets.ModelViewSet):
@@ -309,6 +330,19 @@ class PayrollRecordViewSet(viewsets.ModelViewSet):
     serializer_class = PayrollRecordSerializer
     search_fields = ['employee_name', 'position', 'department', 'month', 'status']
     ordering_fields = ['net_salary', 'payment_date', 'id']
+    permission_classes = [AdminWritesOnly]
+
+    def get_queryset(self):
+        qs = PayrollRecord.objects.all()
+        user = self.request.user
+        # Non-admin faqat o'z yozuvlarini ko'radi — maxfiylik uchun.
+        if getattr(user, 'role', None) != 'admin':
+            emp_id = getattr(user, 'employee_id', None)
+            if emp_id:
+                qs = qs.filter(employee_id=emp_id)
+            else:
+                qs = qs.none()
+        return qs
 
     def create(self, request, *args, **kwargs):
         # Nofaol xodimga oylik yozish taqiqlanadi
@@ -343,6 +377,18 @@ class BonusRecordViewSet(viewsets.ModelViewSet):
     serializer_class = BonusRecordSerializer
     search_fields = ['employee_name', 'kpi_type', 'status']
     ordering_fields = ['amount', 'date', 'id']
+    permission_classes = [AdminWritesOnly]
+
+    def get_queryset(self):
+        qs = BonusRecord.objects.all()
+        user = self.request.user
+        if getattr(user, 'role', None) != 'admin':
+            emp_id = getattr(user, 'employee_id', None)
+            if emp_id:
+                qs = qs.filter(employee_id=emp_id)
+            else:
+                qs = qs.none()
+        return qs
 
     def create(self, request, *args, **kwargs):
         # Nofaol xodimga bonus yozish taqiqlanadi
@@ -630,8 +676,9 @@ class AuthViewSet(viewsets.ViewSet):
                 if upgrade:
                     Employee.objects.filter(pk=emp.pk).update(password=hash_password(password))
                 clear_login_fails(ip, login)
-                # Rol: haydovchi yoki oddiy xodim — pozitsiyadan aniqlanadi
-                role = 'driver' if 'haydovchi' in (emp.position or '').lower() else 'staff'
+                # Rol lavozimdan aniqlanadi: driver / basic (o'z-o'ziga xizmat) / manager
+                from .roles import role_for_position
+                role = role_for_position(emp.position)
                 tok = AuthToken.issue(role=role, name=emp.full_name, employee_id=emp.pk)
                 return Response({
                     'role': role,
@@ -911,6 +958,7 @@ def _b64url_encode(b):
 class AttendanceSettingsViewSet(viewsets.ModelViewSet):
     queryset = AttendanceSettings.objects.all()
     serializer_class = AttendanceSettingsSerializer
+    permission_classes = [AdminWritesOnly]
 
     @action(detail=False, methods=['get', 'patch'], url_path='current')
     def current(self, request):
@@ -944,10 +992,28 @@ class AttendanceRecordViewSet(viewsets.ModelViewSet):
     queryset = AttendanceRecord.objects.all()
     serializer_class = AttendanceRecordSerializer
     search_fields = ['employee_name', 'date', 'status']
+
+    def get_permissions(self):
+        # Face ID check-in — xodimning o'ziga ruxsat; qolgan yozishlar — admin.
+        if getattr(self, 'action', None) == 'check_in':
+            from rest_framework.permissions import IsAuthenticated
+            return [IsAuthenticated()]
+        return [AdminWritesOnly()]
+
     ordering_fields = ['date', 'id']
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = AttendanceRecord.objects.all()
+        user = self.request.user
+        # Non-admin faqat o'z davomatini ko'radi — maxfiylik.
+        if getattr(user, 'role', None) != 'admin':
+            emp_id = getattr(user, 'employee_id', None)
+            if emp_id:
+                qs = qs.filter(employee_id=emp_id)
+            else:
+                return qs.none()
+
+        # Query params bo'yicha filtr
         month = self.request.query_params.get('month')  # YYYY-MM
         if month:
             try:
@@ -1076,6 +1142,18 @@ class SalaryPaymentViewSet(viewsets.ModelViewSet):
     serializer_class = SalaryPaymentSerializer
     search_fields = ['employee_name', 'month', 'status']
     ordering_fields = ['month', 'id']
+    permission_classes = [AdminWritesOnly]
+
+    def get_queryset(self):
+        qs = SalaryPayment.objects.all()
+        user = self.request.user
+        if getattr(user, 'role', None) != 'admin':
+            emp_id = getattr(user, 'employee_id', None)
+            if emp_id:
+                qs = qs.filter(employee_id=emp_id)
+            else:
+                qs = qs.none()
+        return qs
 
     def get_queryset(self):
         qs = super().get_queryset()

@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { api } from '../../api';
+import { useCanAdminWrite } from '../../auth';
 import { Btn, Empty, Field, Loader, Muted, Screen } from '../../components';
 import { fmtMoney, Palette } from '../../theme';
 import { useAppTheme } from '../../theme-context';
@@ -103,6 +104,7 @@ const pickImage = async (onPick: (dataUrl: string) => void) => {
 export const EmployeesScreen: React.FC = () => {
   const { colors } = useAppTheme();
   const s = useMemo(() => makeStyles(colors), [colors]);
+  const canEdit = useCanAdminWrite();
 
   const [items, setItems] = useState<Rec[]>([]);
   const [company, setCompany] = useState<Rec | null>(null);
@@ -389,14 +391,16 @@ export const EmployeesScreen: React.FC = () => {
         <View style={s.bannerLabel}>
           <Text style={s.bannerLabelText}>Korxona profili</Text>
         </View>
-        <View style={s.bannerActions}>
-          <TouchableOpacity style={s.bannerEdit} onPress={openCompanyModal}>
-            <Text style={s.bannerEditText}>Tahrirlash</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={s.bannerAddBtn} onPress={openCreate}>
-            <Text style={s.bannerAddBtnText}>+ Xodim</Text>
-          </TouchableOpacity>
-        </View>
+        {canEdit && (
+          <View style={s.bannerActions}>
+            <TouchableOpacity style={s.bannerEdit} onPress={openCompanyModal}>
+              <Text style={s.bannerEditText}>Tahrirlash</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.bannerAddBtn} onPress={openCreate}>
+              <Text style={s.bannerAddBtnText}>+ Xodim</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
       <View style={s.companyBody}>
         <View style={s.companyHead}>
@@ -533,17 +537,19 @@ export const EmployeesScreen: React.FC = () => {
           <Muted>Login: {str(item, 'username')}</Muted>
         )}
 
-        <View style={s.empActions}>
-          <TouchableOpacity style={s.actBtn} onPress={() => openEdit(item)}>
-            <Text style={s.actBtnText}>Tahrirlash</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[s.actBtn, s.actBtnDanger]}
-            onPress={() => confirmDelete(item)}
-          >
-            <Text style={[s.actBtnText, { color: colors.red }]}>{"O'chirish"}</Text>
-          </TouchableOpacity>
-        </View>
+        {canEdit && (
+          <View style={s.empActions}>
+            <TouchableOpacity style={s.actBtn} onPress={() => openEdit(item)}>
+              <Text style={s.actBtnText}>Tahrirlash</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.actBtn, s.actBtnDanger]}
+              onPress={() => confirmDelete(item)}
+            >
+              <Text style={[s.actBtnText, { color: colors.red }]}>{"O'chirish"}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     );
   };

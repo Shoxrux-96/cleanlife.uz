@@ -13,7 +13,17 @@ from rest_framework import authentication, exceptions
 
 from .models import AuthToken
 
-TOKEN_TTL_DAYS = 30
+# Rol bo'yicha token amal qilish muddati — xavf darajasiga mos:
+#  admin/manager  — kritik, tez-tez qayta kirsin (3 kun)
+#  driver         — kundalik ishchi (14 kun)
+#  basic          — kam o'zgaruvchan self-service (30 kun)
+TOKEN_TTL_BY_ROLE: dict[str, int] = {
+    'admin': 3,
+    'manager': 3,
+    'driver': 14,
+    'basic': 30,
+}
+TOKEN_TTL_DAYS_DEFAULT = 7
 
 
 class _TokenUser:
@@ -76,7 +86,8 @@ class TokenAuthentication(authentication.BaseAuthentication):
             raise exceptions.AuthenticationFailed('Token yaroqsiz yoki muddati o‘tgan.')
 
         # TTL tekshiruvi
-        if tok.created_at < timezone.now() - timedelta(days=TOKEN_TTL_DAYS):
+        ttl_days = TOKEN_TTL_BY_ROLE.get(tok.role, TOKEN_TTL_DAYS_DEFAULT)
+        if tok.created_at < timezone.now() - timedelta(days=ttl_days):
             tok.delete()
             raise exceptions.AuthenticationFailed('Token muddati o‘tgan. Qayta kiring.')
 

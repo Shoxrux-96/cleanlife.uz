@@ -20,17 +20,23 @@ const makeStyles = (c: Palette) =>
     // Tepa va past safe-area allaqachon header (CompanyHeader) va tab bar
     // (SafeAreaInsets.bottom) tomonidan hisobga olingan. Shuning uchun bu yerda
     // vertikal padding bermaymiz — kontent header'ga va tab bar'ga to'liq tutashadi.
-    screen: { flex: 1, backgroundColor: c.bg, paddingHorizontal: 16 },
+    screen: { flex: 1, backgroundColor: c.bg, paddingHorizontal: 16, paddingTop: 4 },
     card: {
       backgroundColor: c.card,
       borderColor: c.cardBorder,
       borderWidth: 1,
-      borderRadius: 14,
-      padding: 14,
+      borderRadius: 16,
+      padding: 16,
       marginBottom: 12,
+      // iOS/Android subtil soya
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 6,
+      elevation: 2,
     },
-    h1: { color: c.text, fontSize: 22, fontWeight: '800', marginBottom: 12 },
-    muted: { color: c.muted, fontSize: 13 },
+    h1: { color: c.text, fontSize: 24, fontWeight: '900', marginBottom: 12, letterSpacing: -0.3 },
+    muted: { color: c.muted, fontSize: 13, lineHeight: 19 },
     label: {
       color: c.muted,
       fontSize: 12,
@@ -42,18 +48,23 @@ const makeStyles = (c: Palette) =>
       backgroundColor: c.input,
       borderColor: c.cardBorder,
       borderWidth: 1,
-      borderRadius: 10,
+      borderRadius: 12,
       color: c.text,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
       fontSize: 15,
     },
     btn: {
       backgroundColor: c.gold,
-      borderRadius: 12,
-      paddingVertical: 13,
+      borderRadius: 14,
+      paddingVertical: 14,
       alignItems: 'center',
       marginTop: 4,
+      shadowColor: c.gold,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 3,
     },
     btnDanger: {
       backgroundColor: 'transparent',
@@ -145,21 +156,46 @@ export const Field: React.FC<{
 }> = ({ label, value, onChange, placeholder, keyboard, secure, multiline }) => {
   const { colors } = useAppTheme();
   const s = useS();
+  const [visible, setVisible] = React.useState(false);
+  const hideSecure = Boolean(secure) && !visible;
   return (
     <View style={{ marginBottom: 12 }}>
       <Text style={s.label}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        placeholder={placeholder}
-        placeholderTextColor={colors.faint}
-        keyboardType={keyboard}
-        secureTextEntry={secure}
-        multiline={multiline}
-        autoCapitalize="none"
-        autoCorrect={false}
-        style={[s.input, multiline && { minHeight: 80, textAlignVertical: 'top' }]}
-      />
+      <View style={{ position: 'relative' }}>
+        <TextInput
+          value={value}
+          onChangeText={onChange}
+          placeholder={placeholder}
+          placeholderTextColor={colors.faint}
+          keyboardType={keyboard}
+          secureTextEntry={hideSecure}
+          multiline={multiline}
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={[
+            s.input,
+            multiline && { minHeight: 80, textAlignVertical: 'top' },
+            secure && { paddingRight: 46 },
+          ]}
+        />
+        {secure ? (
+          <TouchableOpacity
+            onPress={() => setVisible((v) => !v)}
+            activeOpacity={0.7}
+            style={{
+              position: 'absolute',
+              right: 6,
+              top: 0,
+              bottom: 0,
+              width: 40,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text style={{ fontSize: 18, opacity: visible ? 1 : 0.45 }}>👁️</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
     </View>
   );
 };

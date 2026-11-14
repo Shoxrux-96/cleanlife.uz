@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { api } from '../../api';
 import { useAuth } from '../../auth';
+import { useCompany } from '../../company-context';
 import { Btn, Card, Screen, Loader } from '../../components';
 import { fmtMoney, Palette } from '../../theme';
 import { useAppTheme } from '../../theme-context';
@@ -38,6 +39,9 @@ export const StaffHomeScreen: React.FC = () => {
   const { colors } = useAppTheme();
   const s = useMemo(() => makeStyles(colors), [colors]);
   const { session } = useAuth();
+  // Korxona ma'lumotlari — bitta markaziy context'dan.
+  // Web admin tahrirlasa, 60 soniya ichida yoki app foreground'da avtomatik yangilanadi.
+  const companyCtx = useCompany();
 
   const employeeName = session?.name ?? 'Xodim';
   const employeeId = session?.employeeId;
@@ -158,9 +162,12 @@ export const StaffHomeScreen: React.FC = () => {
 
   const sel = selectedMonth != null ? chartData[selectedMonth] : null;
 
-  const companyName = String(company?.name ?? '');
-  const companyAddr = String(company?.address ?? company?.location ?? '');
-  const companyLogo = String(company?.logo ?? '');
+  // Context'dan foydalanamiz — markaziy, realtime yangilanadi.
+  // Agar context bo'sh bo'lsa (sessiya boshlanganida), local load'dan kelgan ma'lumotga tushamiz.
+  const companyName = companyCtx.name || String(company?.name ?? '') || 'Korxona';
+  const companyAddr = companyCtx.address || String(company?.address ?? company?.location ?? '');
+  const companyLogo = companyCtx.logo || String(company?.logo ?? '');
+  const companySlogan = companyCtx.slogan;
   const isLogoImage = companyLogo.startsWith('data:') || companyLogo.startsWith('http');
 
   return (
@@ -171,19 +178,34 @@ export const StaffHomeScreen: React.FC = () => {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => load(true)}
+            onRefresh={() => {
+              load(true);
+              companyCtx.refresh();
+            }}
             tintColor={colors.gold}
           />
         }
       >
-        {/* === KORXONA BANNER === */}
+        {/* === KORXONA BANNER (zamonaviy, ikki qatlamli) === */}
         <View style={s.companyBanner}>
+          {/* Dekorativ orqa fon: yumshoq nur */}
+          <View pointerEvents="none" style={s.bannerGlowTop} />
+          <View pointerEvents="none" style={s.bannerGlowBottom} />
+
           <View style={s.companyTopRow}>
             <View style={s.companyTextCol}>
-              <Text style={s.companyLabel}>KORXONA</Text>
+              <View style={s.labelRow}>
+                <View style={s.labelDot} />
+                <Text style={s.companyLabel}>KORXONA</Text>
+              </View>
               <Text style={s.companyName} numberOfLines={2}>
-                {companyName || 'Korxona'}
+                {companyName}
               </Text>
+              {!!companySlogan && (
+                <Text style={s.companySlogan} numberOfLines={2}>
+                  {companySlogan}
+                </Text>
+              )}
               <View style={s.staffChip}>
                 <View style={s.staffDot} />
                 <Text style={s.staffNameInBanner} numberOfLines={1}>
@@ -194,12 +216,21 @@ export const StaffHomeScreen: React.FC = () => {
             </View>
             <View style={s.companyLogoWrap}>
               {isLogoImage ? (
-                <Image source={{ uri: companyLogo }} style={s.companyLogoImg} />
+                <Image source={{ uri: companyLogo }} style={s.companyLogoImg} resizeMode="cover" />
               ) : (
-                <Text style={s.companyLogoText}>{companyLogo || 'B'}</Text>
+                <Text style={s.companyLogoText}>
+                  {(companyLogo || companyName || 'B').charAt(0).toUpperCase()}
+                </Text>
               )}
             </View>
           </View>
+
+          {!!companyAddr && (
+            <View style={s.addressRow}>
+              <Text style={s.addressIcon}>📍</Text>
+              <Text style={s.addressText} numberOfLines={1}>{companyAddr}</Text>
+            </View>
+          )}
         </View>
 
         <View style={s.contentWrap}>
@@ -377,82 +408,147 @@ export const StaffHomeScreen: React.FC = () => {
 
 const makeStyles = (c: Palette) =>
   StyleSheet.create({
+    // === KORXONA BANNER — ikki qatlamli, zamonaviy, ochiq+to'q ===
     companyBanner: {
-      backgroundColor: c.gold,
-      paddingTop: 9,
-      paddingBottom: 14,
-      paddingHorizontal: 16,
+      backgroundColor: c.goldDark,      // chuqur sage — to'q qatlam
+      paddingTop: 18,
+      paddingBottom: 18,
+      paddingHorizontal: 18,
       borderBottomLeftRadius: 28,
       borderBottomRightRadius: 28,
-      shadowColor: c.gold,
-      shadowOpacity: 0.25,
-      shadowRadius: 10,
-      shadowOffset: { width: 0, height: 3 },
-      elevation: 5,
+      shadowColor: c.goldDark,
+      shadowOpacity: 0.35,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 8 },
+      elevation: 10,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    // Yorqin aksent — yuqori-chapda yumshoq "glow"
+    bannerGlowTop: {
+      position: 'absolute',
+      top: -60,
+      left: -40,
+      width: 200,
+      height: 200,
+      borderRadius: 100,
+      backgroundColor: c.gold + '55',
+    },
+    // Pastki-o'ngda — ikkinchi aksent
+    bannerGlowBottom: {
+      position: 'absolute',
+      bottom: -80,
+      right: -50,
+      width: 220,
+      height: 220,
+      borderRadius: 110,
+      backgroundColor: c.gold + '33',
     },
     companyTopRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 12,
+      gap: 14,
+      zIndex: 1,
     },
     companyTextCol: {
       flex: 1,
       justifyContent: 'center',
     },
+    labelRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 4,
+    },
+    labelDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: '#FFFFFFAA',
+    },
+    companyLabel: {
+      color: '#FFFFFFAA',
+      fontSize: 10,
+      fontWeight: '900',
+      letterSpacing: 2.5,
+    },
+    companyName: {
+      color: '#FFFFFF',
+      fontSize: 23,
+      fontWeight: '900',
+      letterSpacing: -0.3,
+      lineHeight: 27,
+    },
+    companySlogan: {
+      color: '#FFFFFFBB',
+      fontSize: 11,
+      fontWeight: '600',
+      marginTop: 4,
+      lineHeight: 15,
+    },
     companyLogoWrap: {
-      width: 96,
-      height: 96,
-      borderRadius: 48,
+      width: 82,
+      height: 82,
+      borderRadius: 20,
       backgroundColor: '#FFFFFF',
       alignItems: 'center',
       justifyContent: 'center',
       overflow: 'hidden',
-      borderWidth: 3,
-      borderColor: '#FFFFFF',
+      borderWidth: 2,
+      borderColor: '#FFFFFF55',
       shadowColor: '#000',
-      shadowOpacity: 0.15,
-      shadowRadius: 8,
-      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 6,
     },
-    companyLogoImg: { width: 90, height: 90, borderRadius: 45, resizeMode: 'cover' },
-    companyLogoText: { color: c.goldDark, fontSize: 46, fontWeight: '900' },
-    companyLabel: {
-      color: '#1A171599',
-      fontSize: 10,
-      fontWeight: '900',
-      letterSpacing: 2,
-      marginBottom: 2,
-    },
-    companyName: {
-      color: '#1A1715',
-      fontSize: 22,
-      fontWeight: '900',
-      letterSpacing: 0.3,
-      lineHeight: 26,
-    },
+    companyLogoImg: { width: '100%', height: '100%' },
+    companyLogoText: { color: c.goldDark, fontSize: 40, fontWeight: '900' },
+    // Xodim pill — oq yarim shaffof, kontrastli
     staffChip: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      marginTop: 10,
+      marginTop: 12,
       alignSelf: 'flex-start',
-      paddingHorizontal: 10,
-      paddingVertical: 5,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
       borderRadius: 999,
-      backgroundColor: '#1A1715',
+      backgroundColor: '#FFFFFF20',
+      borderWidth: 1,
+      borderColor: '#FFFFFF33',
       maxWidth: '100%',
     },
     staffDot: {
       width: 7,
       height: 7,
       borderRadius: 4,
-      backgroundColor: '#22C55E',
+      backgroundColor: '#6EDBB2',
     },
     staffNameInBanner: {
       color: '#FFFFFF',
       fontSize: 12,
       fontWeight: '800',
       flexShrink: 1,
+      letterSpacing: 0.2,
+    },
+    // Manzil qatori
+    addressRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: 12,
+      paddingTop: 10,
+      borderTopWidth: 1,
+      borderTopColor: '#FFFFFF1A',
+      zIndex: 1,
+    },
+    addressIcon: { fontSize: 12 },
+    addressText: {
+      flex: 1,
+      color: '#FFFFFFAA',
+      fontSize: 12,
+      fontWeight: '600',
     },
 
     contentWrap: { padding: 16 },

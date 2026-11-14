@@ -25,14 +25,15 @@ interface ThemeValue {
 }
 
 const ThemeContext = createContext<ThemeValue>({
-  theme: 'dark',
-  colors: darkColors,
+  theme: 'light',
+  colors: lightColors,
   setTheme: () => {},
   toggleTheme: () => {},
 });
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<ThemeName>('dark');
+  // Yangi mayin cream+mint palitra light rejimda eng chiroyli ko'rinadi.
+  const [theme, setThemeState] = useState<ThemeName>('light');
 
   useEffect(() => {
     (async () => {

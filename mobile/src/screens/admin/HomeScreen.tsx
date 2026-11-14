@@ -180,13 +180,13 @@ export const HomeScreen: React.FC = () => {
   const resourceAllocation = useMemo(() => {
     if (materials.length === 0) {
       return [
-        { name: 'Mato', value: 44, color: '#D4AF37' },
+        { name: 'Mato', value: 44, color: '#8AC9B6' },
         { name: 'Boʻyoq', value: 22, color: '#0EA5E9' },
         { name: 'Ip', value: 16, color: '#10B981' },
         { name: 'Qadoqlash', value: 18, color: '#F59E0B' },
       ];
     }
-    const palette = ['#D4AF37', '#0EA5E9', '#10B981', '#F59E0B', '#A78BFA', '#F87171'];
+    const palette = ['#8AC9B6', '#0EA5E9', '#10B981', '#F59E0B', '#A78BFA', '#F87171'];
     const totals = materials
       .slice(0, 6)
       .map((m, i) => ({
@@ -219,7 +219,7 @@ export const HomeScreen: React.FC = () => {
       title: 'Yuk Xatlari',
       subtitle: 'TTN',
       icon: '📄',
-      tint: '#D4AF37',
+      tint: '#8AC9B6',
     },
     {
       route: 'Deliveries',
@@ -321,7 +321,7 @@ export const HomeScreen: React.FC = () => {
             value={fmtMoney(totalIncome)}
             delta="+12.5%"
             icon="💵"
-            tint="#D4AF37"
+            tint="#8AC9B6"
           />
           <KpiCard
             title="Ishlab chiqarilgan"

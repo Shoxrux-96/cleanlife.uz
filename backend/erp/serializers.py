@@ -109,7 +109,30 @@ class ErpClientSerializer(serializers.ModelSerializer):
         ]
 
 
+class EmployeeListSerializer(serializers.ModelSerializer):
+    """Ro'yxat uchun yengil serializer — og'ir `avatar` (base64) chiqarilgan,
+    o'rniga `has_avatar` flagi. List javobi 10-50 marta kichikroq.
+    """
+    has_face_id = serializers.SerializerMethodField()
+    has_avatar = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Employee
+        fields = [
+            'id', 'full_name', 'position', 'phone', 'status',
+            'salary', 'join_date', 'avatar_color', 'has_avatar',
+            'username', 'has_face_id', 'created_at',
+        ]
+
+    def get_has_face_id(self, obj):
+        return bool(obj.webauthn_credential)
+
+    def get_has_avatar(self, obj):
+        return bool(obj.avatar)
+
+
 class EmployeeSerializer(serializers.ModelSerializer):
+    """To'liq (retrieve/create/update) serializer — avatar + password bilan."""
     has_face_id = serializers.SerializerMethodField()
     password = serializers.CharField(write_only=True, required=False, allow_blank=True, max_length=255)
 

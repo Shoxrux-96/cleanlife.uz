@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
+  Easing,
   View,
   Text,
   ScrollView,
@@ -12,6 +14,8 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { api } from '../../api';
 import { useAuth } from '../../auth';
 import { Screen, Card, Muted, Btn, Loader } from '../../components';
+import { Button, Pill } from '../../ui';
+import { spacing, radius } from '../../design';
 import { Palette } from '../../theme';
 import { useAppTheme } from '../../theme-context';
 
@@ -316,7 +320,7 @@ const WebFaceScanner: React.FC<{
     };
   }, [active, avatarUrl, onCapture, onError, stop]);
 
-  const ringColor = matched ? colors.green : progress > 50 ? colors.gold : '#D4AF37';
+  const ringColor = matched ? colors.green : progress > 50 ? colors.gold : '#8AC9B6';
   const stageW = ovalW + 80;
   const stageH = ovalH + 80;
 
@@ -361,7 +365,7 @@ const WebFaceScanner: React.FC<{
         ) : null}
       </View>
 
-      <Text style={[styles.status, { color: matched ? colors.green : '#1A1715' }]}>
+      <Text style={[styles.status, { color: matched ? colors.green : '#1D2A27' }]}>
         {matched ? '✓ Tasdiqlandi' : status}
       </Text>
     </View>
@@ -395,7 +399,7 @@ const styles = StyleSheet.create({
     zIndex: 3,
   },
   progressText: {
-    color: '#1A1715',
+    color: '#1D2A27',
     fontSize: 13,
     fontWeight: '900',
   },
@@ -595,49 +599,218 @@ export const CheckinScreen: React.FC = () => {
   }
 
   const alreadyChecked = Boolean(todayRec);
+  const checkInTime = String(todayRec?.check_in ?? '').slice(0, 5);
+  const isLate = String(todayRec?.status ?? '') === 'kechikkan';
 
-  // Allaqachon davomatdan o'tgan — minimal tasdiq
+  // ===== Allaqachon davomatdan o'tgan — chiroyli tasdiq kartasi =====
   if (alreadyChecked) {
     return (
-      <View style={s.fullWhite}>
-        <View style={s.doneBadge}>
-          <Text style={s.doneCheck}>✓</Text>
+      <Screen>
+        <View style={s.centerStage}>
+          <SuccessBadge colors={colors} />
+          <Text style={s.doneTitle}>Davomatdan o'tdingiz</Text>
+          <Text style={s.doneSub}>{employeeName}</Text>
+          <View style={s.timeChip}>
+            <Text style={s.timeChipIcon}>🕒</Text>
+            <Text style={s.timeChipText}>{checkInTime || '—:—'}</Text>
+          </View>
+          <View style={{ marginTop: spacing.md }}>
+            <Pill
+              tone={isLate ? 'gold' : 'green'}
+              label={isLate ? 'Kechikdingiz' : "O'z vaqtida"}
+            />
+          </View>
+          <Text style={s.doneFoot}>Ertaga yana ko'rishamiz!</Text>
         </View>
-        <Text style={s.doneTitle}>Davomatdan o'tdingiz</Text>
-        <Text style={s.doneTime}>{String(todayRec?.check_in ?? '')}</Text>
-      </View>
+      </Screen>
     );
   }
 
-  // Xato / shart bajarilmagan holat — kichik xabar, qayta urinish
+  // ===== Xato / shart bajarilmagan holat — zamonaviy karta =====
   if (!scanning && msg && !msg.ok) {
     return (
-      <View style={s.fullWhite}>
-        <Text style={s.errIcon}>⚠️</Text>
-        <Text style={s.errTitle}>{msg.text}</Text>
-        <TouchableOpacity onPress={() => { setMsg(null); void startScan(); }} style={s.retryBtn}>
-          <Text style={s.retryText}>Qayta urinish</Text>
-        </TouchableOpacity>
-      </View>
+      <Screen>
+        <View style={s.centerStage}>
+          <View style={s.errRing}>
+            <Text style={s.errIcon}>⚠️</Text>
+          </View>
+          <Text style={s.errTitle}>Davomatga kirib bo'lmadi</Text>
+          <Text style={s.errBody}>{msg.text}</Text>
+          <View style={{ marginTop: spacing.xl, width: '100%', gap: spacing.sm }}>
+            <Button title="Qayta urinish" icon="🔄" onPress={() => { setMsg(null); void startScan(); }} full />
+          </View>
+
+          {/* Shart holati chiplari — tanishtiradi */}
+          <View style={s.condRow}>
+            <ConditionChip ok={!!avatarUrl} label="3×4 rasm" colors={colors} />
+            <ConditionChip ok={timeState.ok} label="Ish vaqti" colors={colors} />
+            <ConditionChip ok={!!coords} label="Joylashuv" colors={colors} />
+          </View>
+        </View>
+      </Screen>
     );
   }
 
-  // Asosiy: faqat oval ichida kamera, qolgan hamma joy oq
+  // ===== Asosiy: skaner yoki tayyorgarlik =====
   return (
-    <View style={s.fullWhite}>
-      {scanning ? (
-        <WebFaceScanner
-          colors={colors}
-          ovalW={260}
-          ovalH={340}
-          avatarUrl={avatarUrl}
-          onCapture={onFaceCapture}
-          onError={onFaceError}
-          active={scanning}
-        />
-      ) : (
-        <Loader />
-      )}
+    <Screen>
+      <View style={s.centerStage}>
+        {scanning ? (
+          <>
+            <WebFaceScanner
+              colors={colors}
+              ovalW={260}
+              ovalH={340}
+              avatarUrl={avatarUrl}
+              onCapture={onFaceCapture}
+              onError={onFaceError}
+              active={scanning}
+            />
+            <Text style={s.hint}>Yuzingizni halqa ichiga to'g'rilang</Text>
+          </>
+        ) : (
+          <PulsingAvatar avatarUrl={avatarUrl} name={employeeName} colors={colors} />
+        )}
+        {busy ? <Text style={s.hint}>Davomat saqlanmoqda...</Text> : null}
+      </View>
+    </Screen>
+  );
+};
+
+// ===== Chiroyli yordamchi komponentlar =====
+
+const SuccessBadge: React.FC<{ colors: Palette }> = ({ colors }) => {
+  const scale = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.spring(scale, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }).start();
+  }, [scale]);
+  return (
+    <Animated.View
+      style={{
+        width: 128,
+        height: 128,
+        borderRadius: 64,
+        backgroundColor: colors.green + '22',
+        borderWidth: 2,
+        borderColor: colors.green + '55',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transform: [{ scale }],
+        marginBottom: spacing.xl,
+      }}
+    >
+      <View
+        style={{
+          width: 88,
+          height: 88,
+          borderRadius: 44,
+          backgroundColor: colors.green,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Text style={{ color: '#fff', fontSize: 52, fontWeight: '900', lineHeight: 58 }}>✓</Text>
+      </View>
+    </Animated.View>
+  );
+};
+
+const PulsingAvatar: React.FC<{ avatarUrl: string; name: string; colors: Palette }> = ({ avatarUrl, name, colors }) => {
+  const pulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 1400, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 0, useNativeDriver: true }),
+      ]),
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [pulse]);
+
+  const ringStyle = (delay: number) => ({
+    position: 'absolute' as const,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    borderWidth: 2,
+    borderColor: colors.gold,
+    opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0] }),
+    transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.8 + delay] }) }],
+  });
+
+  const initial = (name || '?').trim().charAt(0).toUpperCase();
+
+  return (
+    <View style={{ alignItems: 'center', marginBottom: spacing.xl }}>
+      <View style={{ width: 240, height: 240, alignItems: 'center', justifyContent: 'center' }}>
+        <Animated.View style={ringStyle(0)} />
+        <Animated.View style={ringStyle(0.2)} />
+        <View
+          style={{
+            width: 180,
+            height: 180,
+            borderRadius: 90,
+            backgroundColor: colors.card,
+            borderWidth: 3,
+            borderColor: colors.gold,
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+          }}
+        >
+          {avatarUrl ? (
+            Platform.OS === 'web' ? (
+              <AvatarDom url={avatarUrl} />
+            ) : (
+              <Text style={{ color: colors.gold, fontSize: 72, fontWeight: '900' }}>{initial}</Text>
+            )
+          ) : (
+            <Text style={{ color: colors.gold, fontSize: 72, fontWeight: '900' }}>{initial}</Text>
+          )}
+        </View>
+      </View>
+      <Text style={{ color: colors.text, fontSize: 18, fontWeight: '900', marginTop: spacing.md }}>{name}</Text>
+      <Text style={{ color: colors.muted, fontSize: 13, marginTop: 2 }}>Yuzni tasdiqlashga tayyorlanmoqda...</Text>
+    </View>
+  );
+};
+
+const AvatarDom: React.FC<{ url: string }> = ({ url }) => {
+  const ref = useRef<any>(null);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const host = ref.current;
+    if (!host) return;
+    const img = document.createElement('img');
+    img.src = url;
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'cover';
+    host.appendChild(img);
+    return () => { try { host.removeChild(img); } catch { /* */ } };
+  }, [url]);
+  return <View ref={ref} style={{ width: '100%', height: '100%' }} />;
+};
+
+const ConditionChip: React.FC<{ ok: boolean; label: string; colors: Palette }> = ({ ok, label, colors }) => {
+  const c = ok ? colors.green : colors.red;
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: radius.pill,
+        borderWidth: 1,
+        borderColor: c + '55',
+        backgroundColor: c + '14',
+      }}
+    >
+      <Text style={{ color: c, fontSize: 12, fontWeight: '900' }}>{ok ? '✓' : '✕'}</Text>
+      <Text style={{ color: c, fontSize: 11, fontWeight: '800' }}>{label}</Text>
     </View>
   );
 };
@@ -686,34 +859,52 @@ const ConditionCard: React.FC<{
 
 const makeStyles = (c: Palette) =>
   StyleSheet.create({
-    fullWhite: {
+    centerStage: {
       flex: 1,
-      backgroundColor: '#FFFFFF',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: 24,
+      paddingVertical: 24,
+      paddingHorizontal: 8,
     },
-    doneBadge: {
+    doneTitle: { color: c.text, fontSize: 22, fontWeight: '900', marginBottom: 4, textAlign: 'center' },
+    doneSub: { color: c.muted, fontSize: 14, fontWeight: '700', marginBottom: 16 },
+    timeChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 999,
+      backgroundColor: c.gold + '18',
+      borderWidth: 1,
+      borderColor: c.gold + '55',
+    },
+    timeChipIcon: { fontSize: 18 },
+    timeChipText: { color: c.gold, fontSize: 18, fontWeight: '900', letterSpacing: 1 },
+    doneFoot: { color: c.faint, fontSize: 12, marginTop: 24, fontWeight: '600' },
+    hint: { color: c.muted, fontSize: 13, fontWeight: '700', marginTop: 14, textAlign: 'center' },
+
+    errRing: {
       width: 96,
       height: 96,
       borderRadius: 48,
-      backgroundColor: '#22C55E',
+      backgroundColor: c.red + '18',
+      borderWidth: 2,
+      borderColor: c.red + '55',
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: 20,
+      marginBottom: 18,
     },
-    doneCheck: { color: '#FFFFFF', fontSize: 56, fontWeight: '900', lineHeight: 64 },
-    doneTitle: { color: '#1A1715', fontSize: 20, fontWeight: '900', marginBottom: 6 },
-    doneTime: { color: '#6B7280', fontSize: 15, fontWeight: '700' },
-    errIcon: { fontSize: 48, marginBottom: 14 },
-    errTitle: { color: '#1A1715', fontSize: 15, fontWeight: '700', textAlign: 'center', marginBottom: 20, lineHeight: 22 },
-    retryBtn: {
-      paddingHorizontal: 24,
-      paddingVertical: 12,
-      borderRadius: 999,
-      backgroundColor: '#1A1715',
+    errIcon: { fontSize: 44 },
+    errTitle: { color: c.text, fontSize: 18, fontWeight: '900', textAlign: 'center', marginBottom: 8 },
+    errBody: { color: c.muted, fontSize: 13, fontWeight: '600', textAlign: 'center', lineHeight: 20 },
+    condRow: {
+      flexDirection: 'row',
+      gap: 8,
+      marginTop: 20,
+      flexWrap: 'wrap',
+      justifyContent: 'center',
     },
-    retryText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
     scannerWrap: {
       alignItems: 'center',
       marginVertical: 12,
@@ -750,15 +941,10 @@ const makeStyles = (c: Palette) =>
       borderWidth: 3,
       borderColor: c.bg,
     },
-    previewBadgeText: { color: '#1A1715', fontSize: 20, fontWeight: '900' },
+    previewBadgeText: { color: '#1D2A27', fontSize: 20, fontWeight: '900' },
     previewName: { color: c.text, fontSize: 18, fontWeight: '900', marginTop: 14 },
     previewTime: { color: c.muted, fontSize: 13, marginTop: 4, fontWeight: '600' },
 
-    condRow: {
-      flexDirection: 'row',
-      gap: 8,
-      marginBottom: 12,
-    },
     condCard: {
       flex: 1,
       borderRadius: 12,

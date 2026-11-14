@@ -57,7 +57,7 @@ function buildHtml(p: Props): string {
   .m-dot {
     display:flex; align-items:center; justify-content:center;
     width:28px; height:28px; border-radius:50%; border:2px solid #fff;
-    background:#D4AF37; color:#fff; font-weight:800; font-size:12px;
+    background:#8AC9B6; color:#fff; font-weight:800; font-size:12px;
     box-shadow: 0 2px 6px rgba(0,0,0,.35);
   }
 </style>
@@ -79,7 +79,7 @@ function buildHtml(p: Props): string {
     L.tileLayer(TILE, { maxZoom: 19, attribution: '&copy; OSM' }).addTo(map);
 
     MARKERS.forEach(function(m){
-      var color = m.color || '#D4AF37';
+      var color = m.color || '#8AC9B6';
       var html = '<div class="m-dot" style="background:'+color+'">'+(m.icon || '•')+'</div>';
       var mk = L.marker([m.lat, m.lng], {
         icon: L.divIcon({ className:'', html: html, iconSize: [28,28], iconAnchor: [14,14] })
@@ -164,7 +164,7 @@ export const LeafletMap: React.FC<Props> = (props) => {
           props.layer === 'satellite' ? SATELLITE : STREET;
         L.tileLayer(tileUrl, { maxZoom: 19 }).addTo(map);
         (props.markers ?? []).forEach((m) => {
-          const html = `<div class="m-dot" style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;border:2px solid #fff;background:${m.color || '#D4AF37'};color:#fff;font-weight:800;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,.35)">${m.icon || '•'}</div>`;
+          const html = `<div class="m-dot" style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;border:2px solid #fff;background:${m.color || '#8AC9B6'};color:#fff;font-weight:800;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,.35)">${m.icon || '•'}</div>`;
           const mk = L.marker([m.lat, m.lng], {
             icon: L.divIcon({ className: '', html, iconSize: [28, 28], iconAnchor: [14, 14] }),
           }).addTo(map);

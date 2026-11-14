@@ -16,7 +16,16 @@ export interface Session {
   position?: string;
 }
 
-export type AppRole = 'admin' | 'driver' | 'staff';
+// UI darajadagi marshrut toifasi:
+//  admin / manager → AdminTabs (to'liq boshqaruv)
+//  driver → DriverTabs
+//  basic  → StaffTabs (faqat o'ziga xizmat)
+export type AppRole = 'admin' | 'manager' | 'driver' | 'basic';
+
+const VALID_ROLES: readonly Role[] = ['admin', 'manager', 'driver', 'basic'];
+
+// HR va boshqa admin-only amallar uchun markazlashtirilgan tekshiruv.
+export const canAdminWrite = (role?: Role | null): boolean => role === 'admin';
 
 interface AuthValue {
   session: Session | null;
@@ -37,6 +46,9 @@ const AuthContext = createContext<AuthValue>({
 const isDriverPos = (position?: string): boolean =>
   /haydovchi|driver|voditel/i.test(position || '');
 
+const isBasicPos = (position?: string): boolean =>
+  /elektrik|oshpaz|qarovul/i.test(position || '');
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -56,13 +68,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const raw = await AsyncStorage.getItem(KEY);
         if (!cancelled && raw) {
           const parsed = JSON.parse(raw);
-          if (
-            parsed &&
-            (parsed.role === 'admin' ||
-              parsed.role === 'staff' ||
-              parsed.role === 'driver')
-          ) {
-            setSession(parsed);
+          if (parsed && parsed.role) {
+            // Eski saqlangan 'staff' rolini 'manager'ga (yoki basic'ga) ko'chiramiz
+            const role: Role = VALID_ROLES.includes(parsed.role as Role)
+              ? (parsed.role as Role)
+              : parsed.role === 'staff' ? 'manager' : 'basic';
+            setSession({ ...parsed, role });
           }
         }
       } catch {
@@ -81,11 +92,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const login = useCallback(async (username: string, password: string) => {
     const res = await api.auth.login(username.trim(), password);
-    if (res.role !== 'admin' && res.role !== 'staff' && res.role !== 'driver') {
-      throw new Error('Noma’lum rol.');
-    }
+    // Noma'lum rolni 'basic'ga tushiramiz — kelajakdagi yangi rollar uchun ham barqaror.
+    const role: Role = VALID_ROLES.includes(res.role as Role)
+      ? (res.role as Role)
+      : 'basic';
     const s: Session = {
-      role: res.role,
+      role,
       name: res.name || username,
       employeeId: res.employee_id,
       position: res.position,
@@ -126,8 +138,20 @@ export const useAuth = (): AuthValue => useContext(AuthContext);
 export const useAppRole = (): AppRole => {
   const { session } = useAuth();
   if (!session) return 'admin';
-  if (session.role === 'admin') return 'admin';
-  return isDriverPos(session.position) ? 'driver' : 'staff';
+  // Server endi rolni to'liq hisoblaydi — unga ishonamiz, pozitsiyadan ham
+  // orqa chiziq (eski token'lar uchun).
+  const r = session.role;
+  if (r === 'admin' || r === 'manager' || r === 'driver' || r === 'basic') return r;
+  if (isDriverPos(session.position)) return 'driver';
+  if (isBasicPos(session.position)) return 'basic';
+  return 'manager';
 };
 
 export const isDriver = isDriverPos;
+export const isBasic = isBasicPos;
+
+// HR va admin-only amallar uchun qulay hook.
+export const useCanAdminWrite = (): boolean => {
+  const { session } = useAuth();
+  return canAdminWrite(session?.role);
+};
