@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Server, Plus, ExternalLink, AlertCircle, CheckCircle2, Calendar, Pencil, Trash2 } from 'lucide-react';
+import { Server, Plus, ExternalLink, AlertCircle, CheckCircle2, Calendar, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const API_BASE =
   (import.meta as any).env?.VITE_API_BASE ||
@@ -47,6 +47,8 @@ const emptyForm = () => ({
   notes: '',
 });
 
+const PAGE_SIZE_OPTIONS = [10, 30, 50] as const;
+
 export const ServerPaymentsTab: React.FC = () => {
   const [items, setItems] = useState<ServerPayment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +57,8 @@ export const ServerPaymentsTab: React.FC = () => {
   const [form, setForm] = useState(emptyForm());
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [pageSize, setPageSize] = useState<number>(10);
+  const [page, setPage] = useState<number>(1);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -147,6 +151,18 @@ export const ServerPaymentsTab: React.FC = () => {
     upcomingDays < 0 ? 'critical' :
     upcomingDays <= 3 ? 'critical' :
     upcomingDays <= 5 ? 'warning' : 'ok';
+
+  // Sahifalash: pageSize o'zgarganda 1-sahifaga qaytamiz
+  useEffect(() => { setPage(1); }, [pageSize, items.length]);
+
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pagedItems = useMemo(
+    () => items.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [items, safePage, pageSize],
+  );
+  const rangeStart = items.length === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(safePage * pageSize, items.length);
 
   const totals = useMemo(() => {
     const byYear: Record<string, number> = {};
@@ -332,7 +348,7 @@ export const ServerPaymentsTab: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {items.map((p) => {
+              {pagedItems.map((p) => {
                 const d = p.days_until_due ?? 0;
                 return (
                   <tr key={p.id} className="border-b border-stone-100 dark:border-[#2A221A] hover:bg-stone-50/50 dark:hover:bg-[#1F1A15]">
@@ -368,6 +384,64 @@ export const ServerPaymentsTab: React.FC = () => {
               })}
             </tbody>
           </table>
+        )}
+
+        {/* Pagination */}
+        {items.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-3 border-t border-stone-200 dark:border-[#332A22] bg-stone-50/50 dark:bg-[#161412]/50">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-stone-500">Har sahifada:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="px-2 py-1 rounded-md border border-stone-200 dark:border-[#382F26] bg-white dark:bg-[#161412] text-xs font-semibold text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+              >
+                {PAGE_SIZE_OPTIONS.map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+              <span className="text-xs text-stone-500">
+                · {rangeStart}–{rangeEnd} / {items.length}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage(1)}
+                disabled={safePage === 1}
+                className="px-2 py-1 rounded-md border border-stone-200 dark:border-[#382F26] text-xs font-semibold text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-[#251E18] disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Boshiga"
+              >
+                «
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={safePage === 1}
+                className="w-8 h-7 inline-flex items-center justify-center rounded-md border border-stone-200 dark:border-[#382F26] hover:bg-stone-100 dark:hover:bg-[#251E18] disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Oldingi"
+              >
+                <ChevronLeft className="w-4 h-4 text-stone-600 dark:text-stone-300" />
+              </button>
+              <span className="px-3 text-xs font-bold text-stone-900 dark:text-stone-100">
+                {safePage} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage === totalPages}
+                className="w-8 h-7 inline-flex items-center justify-center rounded-md border border-stone-200 dark:border-[#382F26] hover:bg-stone-100 dark:hover:bg-[#251E18] disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Keyingi"
+              >
+                <ChevronRight className="w-4 h-4 text-stone-600 dark:text-stone-300" />
+              </button>
+              <button
+                onClick={() => setPage(totalPages)}
+                disabled={safePage === totalPages}
+                className="px-2 py-1 rounded-md border border-stone-200 dark:border-[#382F26] text-xs font-semibold text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-[#251E18] disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Oxiriga"
+              >
+                »
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>
