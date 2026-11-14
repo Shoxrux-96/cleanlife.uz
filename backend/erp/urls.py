@@ -16,6 +16,7 @@ from .views import (
     BonusRecordViewSet, CompanyInfoViewSet, ContactMessageViewSet, DashboardOverviewViewSet, DeliveryTripViewSet,
     EmployeeViewSet, ErpClientViewSet, ErpOrderViewSet, ErpProductViewSet,
     FinancialTransactionViewSet, PayrollRecordViewSet, SalaryPaymentViewSet, RawMaterialViewSet,
+    ServerPaymentViewSet,
     SiteBeforeAfterViewSet, SiteContactInfoViewSet, SitePortfolioProjectViewSet,
     WaybillTTNViewSet,
 )
@@ -40,6 +41,7 @@ router.register(r'auth', AuthViewSet, basename='auth')
 router.register(r'attendance', AttendanceRecordViewSet, basename='attendance')
 router.register(r'attendance-settings', AttendanceSettingsViewSet, basename='attendance-settings')
 router.register(r'salary-payments', SalaryPaymentViewSet, basename='salary-payment')
+router.register(r'server-payments', ServerPaymentViewSet, basename='server-payment')
 router.register(r'stats/overview', DashboardOverviewViewSet, basename='stats-overview')
 
 urlpatterns = [

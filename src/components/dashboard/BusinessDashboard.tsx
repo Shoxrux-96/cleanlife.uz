@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  LayoutDashboard, TrendingUp, DollarSign, Package, Layers, 
+import {
+  LayoutDashboard, TrendingUp, DollarSign, Package, Layers,
   ShoppingCart, Users, Truck, FileText, ChevronDown, ChevronRight,
-  Sun, Moon, LogOut, ShieldCheck, User, Bell, Sparkles, Building2, 
+  Sun, Moon, LogOut, ShieldCheck, User, Bell, Sparkles, Building2,
   CheckCircle2, Menu, X, Globe, Phone, Award, Warehouse, ArrowUpRight,
   Calendar, Search, ExternalLink, Factory, Calculator, Briefcase, Mail,
-  Images, SlidersHorizontal, MessageSquareText
+  Images, SlidersHorizontal, MessageSquareText, Smartphone, Server
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -25,6 +25,8 @@ import { CalculatorTab } from './CalculatorTab';
 import { ContactCmsTab } from './ContactCmsTab';
 import { PortfolioCmsTab } from './PortfolioCmsTab';
 import { BeforeAfterCmsTab } from './BeforeAfterCmsTab';
+import { ServerPaymentsTab } from './ServerPaymentsTab';
+import { ServerPaymentBell } from './ServerPaymentBell';
 import {
   getStoredContactInfo, getStoredContactMessages,
   getStoredPortfolio, getStoredBeforeAfter,
@@ -66,7 +68,8 @@ export type TabType =
   | 'calculator'
   | 'cms_contact'
   | 'cms_portfolio'
-  | 'cms_beforeafter';
+  | 'cms_beforeafter'
+  | 'server_payments';
 
 export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   onBackToSite,
@@ -1121,6 +1124,21 @@ const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
                 </div>
               )}
             </div>
+
+            {/* === SERVER TO'LOVLARI === */}
+            <div>
+              <button
+                onClick={() => { setActiveTab('server_payments'); setIsMobileMenuOpen(false); }}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors cursor-pointer ${
+                  activeTab === 'server_payments'
+                    ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 font-bold'
+                    : 'text-[#6B6152] dark:text-[#B8AEA0] hover:text-black dark:hover:text-white'
+                }`}
+              >
+                <Server className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Server to'lovlari</span>
+              </button>
+            </div>
           </nav>
         </div>
       </aside>
@@ -1147,10 +1165,25 @@ const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
               {activeTab === 'cms_contact' && t.dash.shell.titleCmsContact}
               {activeTab === 'cms_portfolio' && t.dash.shell.titleCmsPortfolio}
               {activeTab === 'cms_beforeafter' && t.dash.shell.titleCmsSlider}
+              {activeTab === 'server_payments' && "Server to'lovlari"}
             </h2>
           </div>
 
           <div className="flex items-center gap-2.5">
+            {/* 0. Server to'lov eslatmasi (ServerPaymentBell) */}
+            <ServerPaymentBell onOpen={() => setActiveTab('server_payments')} />
+
+            {/* 0b. APK yuklab olish — mobil ilova */}
+            <a
+              href="/apk/cleanlife-erp.apk"
+              download
+              className="w-8 h-8 rounded-xl border border-stone-200 dark:border-[#382F26] text-stone-600 dark:text-stone-300 hover:text-black dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-[#1E2B27] transition-all cursor-pointer flex items-center justify-center shadow-sm hover:scale-105 active:scale-95"
+              title="Mobil ilovani yuklab olish (APK)"
+              aria-label="APK"
+            >
+              <Smartphone className="w-4 h-4 text-emerald-600 dark:text-[#8AC9B6]" />
+            </a>
+
             {/* 1. Saytga tugmasi (faqat ikonka) */}
             {onBackToSite && (
               <button
@@ -1501,6 +1534,8 @@ const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
               }}
             />
           )}
+          {activeTab === 'server_payments' && <ServerPaymentsTab />}
+
           {activeTab === 'cms_contact' && (
             <ContactCmsTab
               messages={cmsMessages}

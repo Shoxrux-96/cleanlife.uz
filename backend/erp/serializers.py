@@ -109,6 +109,25 @@ class ErpClientSerializer(serializers.ModelSerializer):
         ]
 
 
+class ServerPaymentSerializer(serializers.ModelSerializer):
+    from .models import ServerPayment as _SP
+    days_until_due = serializers.SerializerMethodField()
+
+    class Meta:
+        from .models import ServerPayment
+        model = ServerPayment
+        fields = [
+            'id', 'period', 'amount', 'currency', 'paid_at', 'next_due_date',
+            'provider', 'payment_url', 'notes', 'days_until_due', 'created_at',
+        ]
+
+    def get_days_until_due(self, obj):
+        from datetime import date
+        if not obj.next_due_date:
+            return None
+        return (obj.next_due_date - date.today()).days
+
+
 class EmployeeListSerializer(serializers.ModelSerializer):
     """Ro'yxat uchun yengil serializer — og'ir `avatar` (base64) chiqarilgan,
     o'rniga `has_avatar` flagi. List javobi 10-50 marta kichikroq.

@@ -553,3 +553,36 @@ class AuthToken(models.Model):
 
     def __str__(self):
         return f'{self.role}:{self.name or self.employee_id}'
+
+
+class ServerPayment(models.Model):
+    """VPS / hosting to'lovlari tarixi + keyingi muddat kuzatuvi.
+
+    Har bir to'lov: qaysi oyga, qancha so'm, to'lov sanasi, keyingi to'lov sanasi,
+    to'lov URL'i (provider sahifasi), izoh.
+    """
+    PROVIDERS = [
+        ('contabo', 'Contabo'),
+        ('aws', 'AWS'),
+        ('digitalocean', 'DigitalOcean'),
+        ('hetzner', 'Hetzner'),
+        ('timeweb', 'Timeweb'),
+        ('other', 'Boshqa'),
+    ]
+
+    period = models.CharField(max_length=7, help_text='YYYY-MM — qaysi oy uchun to\'lov')
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    currency = models.CharField(max_length=10, default='USD')  # USD, UZS, EUR
+    paid_at = models.DateField(help_text='To\'lov qilingan sana')
+    next_due_date = models.DateField(help_text='Keyingi to\'lov kuni')
+    provider = models.CharField(max_length=32, choices=PROVIDERS, default='other')
+    payment_url = models.URLField(blank=True, default='', help_text='Provider to\'lov sahifasi')
+    notes = models.CharField(max_length=255, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-paid_at', '-id']
+        indexes = [models.Index(fields=['-next_due_date']), models.Index(fields=['-paid_at'])]
+
+    def __str__(self):
+        return f"{self.period}: {self.amount} {self.currency} (next {self.next_due_date})"

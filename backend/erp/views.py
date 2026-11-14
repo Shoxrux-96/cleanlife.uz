@@ -14,7 +14,7 @@ from rest_framework.response import Response
 
 from .models import (
     AttendanceRecord, AttendanceSettings, AuthToken, BonusRecord, CompanyInfo, ContactMessage, DeliveryTrip, Employee, ErpClient, ErpOrder,
-    ErpProduct, FinancialTransaction, PayrollRecord, SalaryPayment, RawMaterial,
+    ErpProduct, FinancialTransaction, PayrollRecord, SalaryPayment, RawMaterial, ServerPayment,
     SiteBeforeAfter, SiteContactInfo, SitePortfolioProject, WaybillTTN,
 )
 from .serializers import (
@@ -25,7 +25,7 @@ from .serializers import (
     RawMaterialSerializer, SiteBeforeAfterSerializer, SiteContactInfoSerializer,
     SitePortfolioProjectSerializer, WaybillTTNSerializer,
 )
-from .serializers import EmployeeListSerializer
+from .serializers import EmployeeListSerializer, ServerPaymentSerializer
 from .permissions import AdminWritesOnly
 
 WAYBILL_STATUS_TO_TRIP = {
@@ -1134,6 +1134,35 @@ class AttendanceRecordViewSet(viewsets.ModelViewSet):
 
 def _webauthn_challenge_key(kind, emp_id):
     return f'webauthn_challenge_{kind}_{emp_id}'
+
+
+class ServerPaymentViewSet(viewsets.ModelViewSet):
+    """VPS to'lovlari — faqat admin boshqaradi."""
+    queryset = ServerPayment.objects.all()
+    serializer_class = ServerPaymentSerializer
+    permission_classes = [AdminWritesOnly]
+    search_fields = ['period', 'provider', 'notes']
+    ordering_fields = ['paid_at', 'next_due_date', 'id']
+
+    @action(detail=False, methods=['get'], url_path='upcoming')
+    def upcoming(self, request):
+        """Keyingi to'lov haqida hisobot: eng oxirgi yozuv + ogohlantirish bayrog'i.
+
+        reminder=true agar keyingi to'lov ≤ 5 kun qolgan bo'lsa.
+        """
+        from datetime import date
+        latest = ServerPayment.objects.order_by('-next_due_date').first()
+        if not latest:
+            return Response({'has_payment': False})
+        days = (latest.next_due_date - date.today()).days
+        return Response({
+            'has_payment': True,
+            'latest': ServerPaymentSerializer(latest).data,
+            'days_until_due': days,
+            'reminder': days <= 5,
+            'critical': days <= 3,
+            'overdue': days < 0,
+        })
 
 
 class SalaryPaymentViewSet(viewsets.ModelViewSet):
